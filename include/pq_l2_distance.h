@@ -58,7 +58,7 @@ template <typename data_t> class PQL2Distance : public QuantizedDistance<data_t>
                                        float *dists_out) override;
 
     // Same as above, but returns the distances in a vector instead of an array.
-    // Convenience function for index.cpp.
+    // Convenience function for index.cu.
     virtual void preprocessed_distance(PQScratch<data_t> &pq_scratch, const uint32_t n_ids,
                                        std::vector<float> &dists_out) override;
 

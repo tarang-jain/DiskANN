@@ -2,7 +2,7 @@
 #Licensed under the MIT                        license.
 
 add_library(${PROJECT_NAME} SHARED dllmain.cpp ../abstract_data_store.cpp ../partition.cpp ../pq.cpp ../pq_flash_index.cpp ../logger.cpp ../utils.cpp 
-    ../windows_aligned_file_reader.cpp ../distance.cpp ../pq_l2_distance.cpp ../memory_mapper.cpp ../index.cpp 
+    ../windows_aligned_file_reader.cpp ../distance.cpp ../pq_l2_distance.cpp ../memory_mapper.cpp ../index.cu 
     ../in_mem_data_store.cpp ../pq_data_store.cpp ../in_mem_graph_store.cpp ../math_utils.cpp ../disk_utils.cpp ../filter_utils.cpp 
     ../ann_exception.cpp ../natural_number_set.cpp ../natural_number_map.cpp ../scratch.cpp ../index_factory.cpp ../abstract_index.cpp)
 
@@ -33,3 +33,9 @@ foreach(RUNTIME_FILE ${RUNTIME_FILES_TO_COPY})
                        POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E copy "${RUNTIME_FILE}" "${TARGET_DIR}")
 endforeach()
+
+#if(NOT TARGET raft::raft)
+#   find_package(raft COMPONENTS compiled distributed)
+#endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

@@ -75,7 +75,7 @@ template <typename data_t> void PQDataStore<data_t>::populate_data(const std::st
     generate_quantized_data<data_t>(filename, pivots_file, compressed_file, _distance_metric, p_val, _num_chunks,
                                     _pq_distance_fn->is_opq());
 
-    // REFACTOR TODO: Not sure of the alignment. Just copying from index.cpp
+    // REFACTOR TODO: Not sure of the alignment. Just copying from index.cu
     alloc_aligned(((void **)&_quantized_data), file_num_points * _num_chunks * sizeof(uint8_t), 1);
     copy_aligned_data_from_file<uint8_t>(compressed_file.c_str(), _quantized_data, file_num_points, _num_chunks,
                                          _num_chunks);

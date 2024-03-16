@@ -23,6 +23,28 @@ set(CMAKE_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+cmake_minimum_required(VERSION 3.26.4 FATAL_ERROR)
+
+# ------------- configure rapids-cmake --------------#
+
+include(cmake/thirdparty/fetch_rapids.cmake)
+include(rapids-cmake)
+include(rapids-cpm)
+include(rapids-cuda)
+include(rapids-export)
+include(rapids-find)
+
+# ------------- configure project --------------#
+
+rapids_cuda_init_architectures(${PROJECT_NAME})
+
+project(${PROJECT_NAME} LANGUAGES CXX CUDA)
+
+# ------------- configure raft -----------------#
+
+rapids_cpm_init()
+include(cmake/thirdparty/get_raft.cmake)
+
 if(NOT MSVC)
 	set(CMAKE_CXX_COMPILER g++)
 endif()
@@ -145,7 +167,7 @@ if (MSVC)
         "${DISKANN_MKL_LIB_PATH}/mkl_intel_thread.lib")
 else()
     # expected path for manual intel mkl installs
-    set(POSSIBLE_OMP_PATHS "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so;/usr/lib/x86_64-linux-gnu/libiomp5.so;/opt/intel/lib/intel64_lin/libiomp5.so")
+    set(POSSIBLE_OMP_PATHS "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so;/usr/lib/x86_64-linux-gnu/libiomp5.so;/opt/intel/lib/intel64_lin/libiomp5.so;/raid/tarangj/miniconda3/envs/raft-diskann/lib/libiomp5.so")
     foreach(POSSIBLE_OMP_PATH ${POSSIBLE_OMP_PATHS})
         if (EXISTS ${POSSIBLE_OMP_PATH})
             get_filename_component(OMP_PATH ${POSSIBLE_OMP_PATH} DIRECTORY)

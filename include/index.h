@@ -4,6 +4,8 @@
 #pragma once
 
 #include "common_includes.h"
+#include <optional>
+#include <raft/neighbors/cagra.cuh>
 
 #ifdef EXEC_ENV_OLS
 #include "aligned_file_reader.h"
@@ -236,6 +238,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     Index(const Index<T, TagT, LabelT> &) = delete;
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
+    void build_raft_cagra(const T* data);
+
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling
     void build_with_data_populated(const std::vector<TagT> &tags);
@@ -444,5 +448,11 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     std::vector<non_recursive_mutex> _locks;
 
     static const float INDEX_GROWTH_FACTOR;
+
+    /// optional around the Raft Cagra index
+    std::optional<raft::neighbors::cagra::index<float>> raft_knn_index{
+            std::nullopt};
+
+    std::vector<uint32_t> host_cagra_graph;
 };
 } // namespace diskann
