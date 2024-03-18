@@ -353,3 +353,9 @@ include(clang-format.cmake)
 if(PYBIND)
     add_subdirectory(python)
 endif()
+
+if(NOT TARGET raft::raft)
+   find_package(raft COMPONENTS compiled distributed)
+endif()
+
+target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

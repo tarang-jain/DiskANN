@@ -1409,8 +1409,8 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
         auto node = visit_order[node_ctr];
 
         std::vector<uint32_t> cagra_nbr_list(64);
-        nbr_start_ptr = host_cagra_graph.data() + i * 64;
-        nbr_end_ptr = nbr_start_ptr + 64;
+        uint32_t* nbr_start_ptr = host_cagra_graph.data() + node * 64;
+        uint32_t* nbr_end_ptr = nbr_start_ptr + 64;
         std::copy(cagra_nbr_list.data(), nbr_start_ptr, nbr_end_ptr);
 
         assert(cagra_nbr_list.size() > 0);
@@ -1646,20 +1646,19 @@ void build_raft_cagra(const T* data) {
     index_params.graph_degree = 64;
     index_params.intermediate_graph_degree = 128;
     raft::device_resources handle;
-    raft_knn_index.emplace(raft::neighbors::cagra::build<T, LabelT>(handle, index_params, data));
+    // raft_knn_index.emplace(raft::neighbors::cagra::build<T, LabelT>(handle, index_params, data));
 
-    assert(raft_knn_index.has_value());
-    auto stream = raft_handle.get_stream();
-    auto device_graph = raft_knn_index.value().graph();
-    host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
+    // assert(raft_knn_index.has_value());
+    // auto stream = raft_handle.get_stream();
+    // auto device_graph = raft_knn_index.value().graph();
+    // host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
 
-    thrust::copy(
-            thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
-            thrust::device_ptr<const uint32_t>(
-                    device_graph.data_handle() + device_graph.size()),
-            host_cagra_graph.data());
-    handle.sync_stream();   
-}
+    // thrust::copy(
+    //         thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
+    //         thrust::device_ptr<const uint32_t>(
+    //                 device_graph.data_handle() + device_graph.size()),
+    //         host_cagra_graph.data());
+    // handle.sync_stream();   
 }
 
 template <typename T, typename TagT, typename LabelT>

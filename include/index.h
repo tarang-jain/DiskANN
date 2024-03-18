@@ -5,7 +5,7 @@
 
 #include "common_includes.h"
 #include <optional>
-#include <raft/neighbors/cagra.cuh>
+// #include <raft/neighbors/cagra.cuh>
 
 #ifdef EXEC_ENV_OLS
 #include "aligned_file_reader.h"
@@ -290,6 +290,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     // Acquire exclusive _update_lock before calling
     void link();
 
+    void link_cagra();
+
     // Acquire exclusive _tag_lock and _delete_lock before calling
     int reserve_location();
 
@@ -450,8 +452,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     static const float INDEX_GROWTH_FACTOR;
 
     /// optional around the Raft Cagra index
-    std::optional<raft::neighbors::cagra::index<float>> raft_knn_index{
-            std::nullopt};
+    // std::optional<raft::neighbors::cagra::index<float>> raft_knn_index{
+    //         std::nullopt};
 
     std::vector<uint32_t> host_cagra_graph;
 };

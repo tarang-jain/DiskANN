@@ -39,3 +39,4 @@ target_link_libraries(${PROJECT_NAME}_unit_tests ${PROJECT_NAME} ${DISKANN_TOOLS
 
 add_test(NAME ${PROJECT_NAME}_unit_tests COMMAND ${PROJECT_NAME}_unit_tests)
 
+target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

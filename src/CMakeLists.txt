@@ -19,6 +19,9 @@ else()
     endif()
     add_library(${PROJECT_NAME} ${CPP_SOURCES})
     add_library(${PROJECT_NAME}_s STATIC ${CPP_SOURCES})
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)
+    target_link_libraries(${PROJECT_NAME}_s PRIVATE raft::raft raft::compiled)
 endif()
 
 if (NOT MSVC)
