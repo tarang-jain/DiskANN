@@ -1640,12 +1640,14 @@ void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_point
     }
 }
 
-template <typename T, typename LabelT>
-void build_raft_cagra(const T* data) {
+template <typename T, typename TagT, typename LabelT>
+void Index<T, TagT, LabelT>::build_raft_cagra(const T* data) {
     raft::neighbors::cagra::index_params index_params;
     index_params.graph_degree = 64;
     index_params.intermediate_graph_degree = 128;
-    raft::device_resources handle;
+    raft::resources handle;
+    auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
+    auto index = raft::neighbors::cagra::build<T, LabelT>(handle, index_params, raft::make_host_matrix_view<T, int64_t>(data, _nd, _dim));
     // raft_knn_index.emplace(raft::neighbors::cagra::build<T, LabelT>(handle, index_params, data));
 
     // assert(raft_knn_index.has_value());
