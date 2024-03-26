@@ -5,7 +5,6 @@
 
 #include "common_includes.h"
 #include <optional>
-// #include <raft/neighbors/cagra.cuh>
 
 #ifdef EXEC_ENV_OLS
 #include "aligned_file_reader.h"
@@ -30,6 +29,11 @@
 #define OVERHEAD_FACTOR 1.1
 #define EXPAND_IF_FULL 0
 #define DEFAULT_MAXC 750
+
+namespace raft::neighbors::cagra{
+template <typename T, typename IdxT>
+class index;
+}
 
 namespace diskann
 {
@@ -238,7 +242,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     Index(const Index<T, TagT, LabelT> &) = delete;
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
-    void build_raft_cagra(const T* data);
+    // Build the raft CAGRA index
+    void build_raft_cagra_index(const T* data);
 
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling
@@ -451,9 +456,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     static const float INDEX_GROWTH_FACTOR;
 
-    /// optional around the Raft Cagra index
-    // std::optional<raft::neighbors::cagra::index<float>> raft_knn_index{
-    //         std::nullopt};
+    // optional around the Raft Cagra index
+    std::unique_ptr<raft::neighbors::cagra::index<T, uint32_t>> raft_knn_index;
 
     std::vector<uint32_t> host_cagra_graph;
 };

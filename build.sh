@@ -33,4 +33,4 @@ cmake \
  ${EXTRA_CMAKE_ARGS} \
  ../
 
-make -j12
+make -j30

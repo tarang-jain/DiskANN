@@ -38,5 +38,3 @@ if(MSVC)
 else() 
 	target_link_libraries(client ${PROJECT_NAME} -lboost_system -lcrypto -lssl -lcpprest Boost::program_options)
 endif()
-
-target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

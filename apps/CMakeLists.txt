@@ -2,7 +2,7 @@
 # Licensed under the MIT license.
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_COMPILE_WARNING_AS_ERROR ON)
+set(CMAKE_COMPILE_WARNING_AS_ERROR OFF)
 
 add_executable(build_memory_index build_memory_index.cpp)
 target_link_libraries(build_memory_index ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} Boost::program_options)

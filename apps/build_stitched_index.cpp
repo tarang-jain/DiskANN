@@ -267,7 +267,7 @@ stitch_indices_return_values stitch_label_indices(
 }
 
 /*
- * Applies the prune_neighbors function from src/index.cu to
+ * Applies the prune_neighbors function from src/index.cpp to
  * every node in the stitched graph.
  *
  * This is an optional step, hence the saving of both the full

@@ -33,9 +33,3 @@ foreach(RUNTIME_FILE ${RUNTIME_FILES_TO_COPY})
                        POST_BUILD
                        COMMAND ${CMAKE_COMMAND} -E copy "${RUNTIME_FILE}" "${TARGET_DIR}")
 endforeach()
-
-#if(NOT TARGET raft::raft)
-#   find_package(raft COMPONENTS compiled distributed)
-#endif()
-
-target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

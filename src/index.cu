@@ -22,6 +22,7 @@
 #endif
 
 #include "index.h"
+#include <xmmintrin.h>
 #include <raft/neighbors/cagra.cuh>
 
 #define MAX_POINTS_FOR_USING_BITSET 10000000
@@ -733,6 +734,7 @@ template <typename T, typename TagT, typename LabelT> int Index<T, TagT, LabelT>
 
 template <typename T, typename TagT, typename LabelT> uint32_t Index<T, TagT, LabelT>::calculate_entry_point()
 {
+    std::cout << "inside calculate entry point"<<std::endl;
     // REFACTOR TODO: This function does not support multi-threaded calculation of medoid.
     // Must revisit if perf is a concern.
     return _data_store->calculate_medoid();
@@ -740,6 +742,7 @@ template <typename T, typename TagT, typename LabelT> uint32_t Index<T, TagT, La
 
 template <typename T, typename TagT, typename LabelT> std::vector<uint32_t> Index<T, TagT, LabelT>::get_init_ids()
 {
+    // std::cout << "num_frozen_pts" << _num_frozen_pts << std::endl;
     std::vector<uint32_t> init_ids;
     init_ids.reserve(1 + _num_frozen_pts);
 
@@ -839,6 +842,8 @@ std::pair<uint32_t, uint32_t> Index<T, TagT, LabelT>::iterate_to_fixed_point(
     auto compute_dists = [this, scratch, pq_dists](const std::vector<uint32_t> &ids, std::vector<float> &dists_out) {
         _pq_data_store->get_distance(scratch->aligned_query(), ids, dists_out, scratch);
     };
+
+    // raft::print_host_vector("init_ids", init_ids.data(), init_ids.size(), std::cout);
 
     // Initialize the candidate pool with starting points
     for (auto id : init_ids)
@@ -1372,8 +1377,10 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     }
 }
 
-template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::link_cagra()
+template <typename T, typename TagT, typename LabelT>
+void Index<T, TagT, LabelT>::link_cagra()
 {
+    std::cout << "inside link_cagra"<<std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1389,12 +1396,6 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
         visit_order.emplace_back(i);
     }
 
-    // If there are any frozen points, add them all.
-    for (uint32_t frozen = (uint32_t)_max_points; frozen < _max_points + _num_frozen_pts; frozen++)
-    {
-        visit_order.emplace_back(frozen);
-    }
-
     // if there are frozen points, the first such one is set to be the _start
     if (_num_frozen_pts > 0)
         _start = (uint32_t)_max_points;
@@ -1402,16 +1403,20 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
         _start = calculate_entry_point();
 
     diskann::Timer link_timer;
+    std::cout << "after link_timer"<<std::endl;
 
-#pragma omp parallel for schedule(dynamic, 2048)
+// #pragma omp parallel for schedule(dynamic, 2048)
     for (int64_t node_ctr = 0; node_ctr < (int64_t)(visit_order.size()); node_ctr++)
     {
+        std::cout << "node_ctr " << node_ctr << std::endl;
         auto node = visit_order[node_ctr];
+        std::cout << "node " << node << std::endl;
 
         std::vector<uint32_t> cagra_nbr_list(64);
         uint32_t* nbr_start_ptr = host_cagra_graph.data() + node * 64;
         uint32_t* nbr_end_ptr = nbr_start_ptr + 64;
-        std::copy(cagra_nbr_list.data(), nbr_start_ptr, nbr_end_ptr);
+        std::cout << *nbr_start_ptr << ' ' << *nbr_end_ptr << std::endl;
+        std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbr_list.data());
 
         assert(cagra_nbr_list.size() > 0);
 
@@ -1570,6 +1575,31 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
 }
 
 template <typename T, typename TagT, typename LabelT>
+void Index<T, TagT, LabelT>::build_raft_cagra_index(const T* data) {
+    std::cout << "inside build_raft_cagra_index" << std::endl;
+    raft::neighbors::cagra::index_params index_params;
+    index_params.graph_degree = 64;
+    index_params.intermediate_graph_degree = 128;
+    raft::device_resources handle;
+    auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
+    auto index = raft::neighbors::cagra::build<T, uint32_t>(handle, index_params, dataset_view);
+    raft_knn_index.reset(&index);
+
+    auto stream = handle.get_stream();
+    auto device_graph = index.graph();
+    host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
+
+    std::cout << "host_cagra_graph_size" << host_cagra_graph.size() << std::endl;
+
+    thrust::copy(
+            thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
+            thrust::device_ptr<const uint32_t>(
+                    device_graph.data_handle() + device_graph.size()),
+            host_cagra_graph.data());
+    handle.sync_stream();   
+}
+
+template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &tags)
 {
     diskann::cout << "Starting index build with " << _nd << " points... " << std::endl;
@@ -1606,6 +1636,7 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
     }
 
     generate_frozen_point();
+    // link();
     link_cagra();
 
     size_t max = 0, min = SIZE_MAX, total = 0, cnt = 0;
@@ -1639,30 +1670,6 @@ void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_point
         throw ANNException("Error" + std::string(e.what()), -1);
     }
 }
-
-template <typename T, typename TagT, typename LabelT>
-void Index<T, TagT, LabelT>::build_raft_cagra(const T* data) {
-    raft::neighbors::cagra::index_params index_params;
-    index_params.graph_degree = 64;
-    index_params.intermediate_graph_degree = 128;
-    raft::resources handle;
-    auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto index = raft::neighbors::cagra::build<T, LabelT>(handle, index_params, raft::make_host_matrix_view<T, int64_t>(data, _nd, _dim));
-    // raft_knn_index.emplace(raft::neighbors::cagra::build<T, LabelT>(handle, index_params, data));
-
-    // assert(raft_knn_index.has_value());
-    // auto stream = raft_handle.get_stream();
-    // auto device_graph = raft_knn_index.value().graph();
-    // host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
-
-    // thrust::copy(
-    //         thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
-    //         thrust::device_ptr<const uint32_t>(
-    //                 device_graph.data_handle() + device_graph.size()),
-    //         host_cagra_graph.data());
-    // handle.sync_stream();   
-}
-
 template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags)
 {
@@ -1685,7 +1692,7 @@ void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_loa
         _data_store->populate_data(data, (location_t)num_points_to_load);
     }
 
-    build_raft_cagra(data);
+    build_raft_cagra_index(data);
 
     build_with_data_populated(tags);
 }
@@ -1773,6 +1780,10 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
         std::unique_lock<std::shared_timed_mutex> tl(_tag_lock);
         _nd = num_points_to_load;
     }
+
+    auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
+    // raft::print_host_vector("in_mem_data_store_data", _in_mem_data_store->_data, 100, std::cout);
+    build_raft_cagra_index(_in_mem_data_store->_data);
     build_with_data_populated(tags);
 }
 

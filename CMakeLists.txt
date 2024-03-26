@@ -355,7 +355,5 @@ if(PYBIND)
 endif()
 
 if(NOT TARGET raft::raft)
-   find_package(raft COMPONENTS compiled distributed)
+    find_package(raft COMPONENTS compiled distributed)
 endif()
-
-target_link_libraries(${PROJECT_NAME} PRIVATE raft::raft raft::compiled)

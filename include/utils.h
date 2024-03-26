@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
 #pragma once
@@ -29,6 +29,7 @@ typedef int FileHandle;
 #include "types.h"
 #include "tag_uint128.h"
 #include <any>
+#include <xmmintrin.h>
 
 #ifdef EXEC_ENV_OLS
 #include "content_buf.h"

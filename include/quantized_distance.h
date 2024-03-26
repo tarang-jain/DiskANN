@@ -44,7 +44,7 @@ template <typename data_t> class QuantizedDistance
     // This function must be called after preprocess_query
     virtual void preprocessed_distance(PQScratch<data_t> &pq_scratch, const uint32_t id_count, float *dists_out) = 0;
 
-    // Same as above, but convenience function for index.cu.
+    // Same as above, but convenience function for index.cpp.
     virtual void preprocessed_distance(PQScratch<data_t> &pq_scratch, const uint32_t n_ids,
                                        std::vector<float> &dists_out) = 0;
 
