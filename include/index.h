@@ -30,10 +30,10 @@
 #define EXPAND_IF_FULL 0
 #define DEFAULT_MAXC 750
 
-namespace raft::neighbors::cagra{
-template <typename T, typename IdxT>
-class index;
-}
+// namespace raft::neighbors::cagra{
+// template <typename T, typename IdxT>
+// class index;
+// }
 
 namespace diskann
 {
@@ -457,7 +457,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     static const float INDEX_GROWTH_FACTOR;
 
     // optional around the Raft Cagra index
-    std::unique_ptr<raft::neighbors::cagra::index<T, uint32_t>> raft_knn_index;
+    // raft::neighbors::cagra::index* raft_knn_index;
 
     std::vector<uint32_t> host_cagra_graph;
 };

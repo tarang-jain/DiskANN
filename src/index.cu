@@ -1408,22 +1408,22 @@ void Index<T, TagT, LabelT>::link_cagra()
 // #pragma omp parallel for schedule(dynamic, 2048)
     for (int64_t node_ctr = 0; node_ctr < (int64_t)(visit_order.size()); node_ctr++)
     {
-        std::cout << "node_ctr " << node_ctr << std::endl;
+        // std::cout << "node_ctr " << node_ctr << std::endl;
         auto node = visit_order[node_ctr];
-        std::cout << "node " << node << std::endl;
+        // std::cout << "node " << node << std::endl;
 
-        std::vector<uint32_t> cagra_nbr_list(64);
-        uint32_t* nbr_start_ptr = host_cagra_graph.data() + node * 64;
-        uint32_t* nbr_end_ptr = nbr_start_ptr + 64;
-        std::cout << *nbr_start_ptr << ' ' << *nbr_end_ptr << std::endl;
-        std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbr_list.data());
+        std::vector<uint32_t> cagra_nbrs(_indexingRange);
+        uint32_t* nbr_start_ptr = host_cagra_graph.data() + node * _indexingRange;
+        uint32_t* nbr_end_ptr = nbr_start_ptr + _indexingRange;
+        // std::cout << *nbr_start_ptr << ' ' << *nbr_end_ptr << std::endl;
+        std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbrs.data());
 
-        assert(cagra_nbr_list.size() > 0);
+        assert(cagra_nbrs.size() > 0);
 
         {
             LockGuard guard(_locks[node]);
 
-            _graph_store->set_neighbours(node, cagra_nbr_list);
+            _graph_store->set_neighbours(node, cagra_nbrs);
             assert(_graph_store->get_neighbours((location_t)node).size() <= _indexingRange);
         }
 
@@ -1578,15 +1578,15 @@ template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::build_raft_cagra_index(const T* data) {
     std::cout << "inside build_raft_cagra_index" << std::endl;
     raft::neighbors::cagra::index_params index_params;
-    index_params.graph_degree = 64;
-    index_params.intermediate_graph_degree = 128;
+    index_params.graph_degree = _indexingRange;
+    index_params.intermediate_graph_degree = _indexingQueueSize;
+    std::cout << index_params.graph_degree << ' '<<index_params.intermediate_graph_degree<<std::endl;
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto index = raft::neighbors::cagra::build<T, uint32_t>(handle, index_params, dataset_view);
-    raft_knn_index.reset(&index);
+    auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, index_params, dataset_view);
 
     auto stream = handle.get_stream();
-    auto device_graph = index.graph();
+    auto device_graph = raft_knn_index.graph();
     host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
 
     std::cout << "host_cagra_graph_size" << host_cagra_graph.size() << std::endl;
@@ -1653,6 +1653,7 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
                   << "  min:" << min << "  count(deg<2):" << cnt << std::endl;
 
     _has_built = true;
+    // raft_knn_index.reset();
 }
 template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_points_to_load, TagVector &tags)
