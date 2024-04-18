@@ -29,6 +29,19 @@
 
 namespace diskann
 {
+
+raft::distance::DistanceType parse_metric_to_raft(diskann::Metric m)
+{
+    switch (m)
+    {
+    case distance::Metric::L2:
+        return raft::distance::DistanceType::L2Expanded;
+    case diskann::Metric::INNER_PRODUCT:
+        return raft::distance::DistanceType::InnerProduct;
+    default:
+        throw ANNException("ERROR: RAFT only supports L2 and INNER_PRODUCT.", -1, __FUNCSIG__, __FILE__, __LINE__);
+    }
+}
 // Initialize an index with metric m, load the data of type T with filename
 // (bin), and initialize max_points
 template <typename T, typename TagT, typename LabelT>
@@ -734,7 +747,7 @@ template <typename T, typename TagT, typename LabelT> int Index<T, TagT, LabelT>
 
 template <typename T, typename TagT, typename LabelT> uint32_t Index<T, TagT, LabelT>::calculate_entry_point()
 {
-    std::cout << "inside calculate entry point"<<std::endl;
+    std::cout << "inside calculate entry point" << std::endl;
     // REFACTOR TODO: This function does not support multi-threaded calculation of medoid.
     // Must revisit if perf is a concern.
     return _data_store->calculate_medoid();
@@ -1377,14 +1390,13 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     }
 }
 
-template <typename T, typename TagT, typename LabelT>
-void Index<T, TagT, LabelT>::link_cagra()
+template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::link_cagra()
 {
-    std::cout << "inside link_cagra"<<std::endl;
+    std::cout << "inside link_cagra" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
-    
+
     assert(_num_frozen_pts == 0);
 
     /* visit_order is a vector that is initialized to the entire graph */
@@ -1403,9 +1415,9 @@ void Index<T, TagT, LabelT>::link_cagra()
         _start = calculate_entry_point();
 
     diskann::Timer link_timer;
-    std::cout << "after link_timer"<<std::endl;
+    std::cout << "after link_timer" << std::endl;
 
-// #pragma omp parallel for schedule(dynamic, 2048)
+    // #pragma omp parallel for schedule(dynamic, 2048)
     for (int64_t node_ctr = 0; node_ctr < (int64_t)(visit_order.size()); node_ctr++)
     {
         // std::cout << "node_ctr " << node_ctr << std::endl;
@@ -1413,8 +1425,8 @@ void Index<T, TagT, LabelT>::link_cagra()
         // std::cout << "node " << node << std::endl;
 
         std::vector<uint32_t> cagra_nbrs(_indexingRange);
-        uint32_t* nbr_start_ptr = host_cagra_graph.data() + node * _indexingRange;
-        uint32_t* nbr_end_ptr = nbr_start_ptr + _indexingRange;
+        uint32_t *nbr_start_ptr = host_cagra_graph.data() + node * _indexingRange;
+        uint32_t *nbr_end_ptr = nbr_start_ptr + _indexingRange;
         // std::cout << *nbr_start_ptr << ' ' << *nbr_end_ptr << std::endl;
         std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbrs.data());
 
@@ -1574,13 +1586,13 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
     set_start_points(points_data.data(), points_data.size());
 }
 
-template <typename T, typename TagT, typename LabelT>
-void Index<T, TagT, LabelT>::build_raft_cagra_index(const T* data) {
+template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::build_raft_cagra_index(const T *data)
+{
     std::cout << "inside build_raft_cagra_index" << std::endl;
     raft::neighbors::cagra::index_params index_params;
     index_params.graph_degree = _indexingRange;
     index_params.intermediate_graph_degree = _indexingQueueSize;
-    std::cout << index_params.graph_degree << ' '<<index_params.intermediate_graph_degree<<std::endl;
+    index_params.metric = parse_metric_to_raft(_dist_metric);
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
     auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, index_params, dataset_view);
@@ -1591,12 +1603,10 @@ void Index<T, TagT, LabelT>::build_raft_cagra_index(const T* data) {
 
     std::cout << "host_cagra_graph_size" << host_cagra_graph.size() << std::endl;
 
-    thrust::copy(
-            thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
-            thrust::device_ptr<const uint32_t>(
-                    device_graph.data_handle() + device_graph.size()),
-            host_cagra_graph.data());
-    handle.sync_stream();   
+    thrust::copy(thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
+                 thrust::device_ptr<const uint32_t>(device_graph.data_handle() + device_graph.size()),
+                 host_cagra_graph.data());
+    handle.sync_stream();
 }
 
 template <typename T, typename TagT, typename LabelT>
