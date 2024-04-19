@@ -34,7 +34,7 @@ raft::distance::DistanceType parse_metric_to_raft(diskann::Metric m)
 {
     switch (m)
     {
-    case distance::Metric::L2:
+    case diskann::Metric::L2:
         return raft::distance::DistanceType::L2Expanded;
     case diskann::Metric::INNER_PRODUCT:
         return raft::distance::DistanceType::InnerProduct;

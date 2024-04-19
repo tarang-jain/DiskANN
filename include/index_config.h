@@ -1,6 +1,7 @@
 #include "common_includes.h"
 #include "parameters.h"
-
+#include <optional>
+#include <raft/neighbors/cagra_types.hpp>
 namespace diskann
 {
 enum class DataStoreStrategy
@@ -41,7 +42,7 @@ struct IndexConfig
     // Params for searching index
     std::shared_ptr<IndexSearchParams> index_search_params;
 
-    stc::optional<raft::neighbors::cagra::index_params> raft_cagra_params{std::nullopt};
+    std::optional<raft::neighbors::cagra::index_params> raft_cagra_params{std::nullopt};
 
   private:
     IndexConfig(DataStoreStrategy data_strategy, GraphStoreStrategy graph_strategy, Metric metric, size_t dimension,
@@ -200,7 +201,7 @@ class IndexConfigBuilder
 
     IndexConfigBuilder &with_raft_cagra_params(const raft::neighbors::cagra::index_params &params)
     {
-        this->raft_cagra_params.emplace(params);
+        // this->raft_cagra_params.emplace(params);
         return *this;
     }
 
