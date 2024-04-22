@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <memory>
 #include <omp.h>
 
 #include <type_traits>
@@ -42,6 +43,7 @@ raft::distance::DistanceType parse_metric_to_raft(diskann::Metric m)
         throw ANNException("ERROR: RAFT only supports L2 and INNER_PRODUCT.", -1, __FUNCSIG__, __FILE__, __LINE__);
     }
 }
+
 // Initialize an index with metric m, load the data of type T with filename
 // (bin), and initialize max_points
 template <typename T, typename TagT, typename LabelT>
@@ -53,7 +55,8 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
       _enable_tags(index_config.enable_tags), _indexingMaxC(DEFAULT_MAXC), _query_scratch(nullptr),
       _pq_dist(index_config.pq_dist_build), _use_opq(index_config.use_opq),
       _filtered_index(index_config.filtered_index), _num_pq_chunks(index_config.num_pq_chunks),
-      _delete_set(new tsl::robin_set<uint32_t>), _conc_consolidate(index_config.concurrent_consolidate)
+      _delete_set(new tsl::robin_set<uint32_t>), _conc_consolidate(index_config.concurrent_consolidate),
+      _raft_cagra_index(index_config.raft_cagra_index)
 {
     if (_dynamic_index && !_enable_tags)
     {
@@ -124,6 +127,21 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
                                      _indexingQueueSize, _indexingRange, _indexingMaxC, _data_store->get_dims());
         }
     }
+
+    if (_raft_cagra_index)
+    {
+        if (index_config.raft_cagra_index_params != nullptr)
+        {
+            assert(parse_metric_to_raft(_dist_metric) == raft_cagra_index_params->metric);
+            _raft_cagra_index_params = index_config.raft_cagra_index_params;
+        }
+        else
+        {
+            raft::neighbors::cagra::index_params raft_cagra_index_params;
+            raft_cagra_index_params.metric = parse_metric_to_raft(_dist_metric);
+            _raft_cagra_index_params = std::make_shared<raft::neighbors::cagra::index_params>(raft_cagra_index_params);
+        }
+    }
 }
 
 template <typename T, typename TagT, typename LabelT>
@@ -132,7 +150,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
                               const std::shared_ptr<IndexSearchParams> index_search_params, const size_t num_frozen_pts,
                               const bool dynamic_index, const bool enable_tags, const bool concurrent_consolidate,
                               const bool pq_dist_build, const size_t num_pq_chunks, const bool use_opq,
-                              const bool filtered_index)
+                              const bool filtered_index, const bool raft_cagra_index,
+                              const std::shared_ptr<raft::neighbors::cagra::index_params> raft_cagra_index_params)
     : Index(
           IndexConfigBuilder()
               .with_metric(m)
@@ -149,6 +168,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
               .is_use_opq(use_opq)
               .is_filtered(filtered_index)
               .with_data_type(diskann_type_to_name<T>())
+              .is_raft_cagra_index(raft_cagra_index)
+              .with_raft_cagra_index_params(raft_cagra_index_params)
               .build(),
           IndexFactory::construct_datastore<T>(DataStoreStrategy::MEMORY,
                                                (max_points == 0 ? (size_t)1 : max_points) +
@@ -1390,9 +1411,8 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     }
 }
 
-template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::link_cagra()
+template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::add_raft_cagra_nbrs()
 {
-    std::cout << "inside link_cagra" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1414,20 +1434,14 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     else
         _start = calculate_entry_point();
 
-    diskann::Timer link_timer;
-    std::cout << "after link_timer" << std::endl;
-
-    // #pragma omp parallel for schedule(dynamic, 2048)
+#pragma omp parallel for schedule(dynamic, 2048)
     for (int64_t node_ctr = 0; node_ctr < (int64_t)(visit_order.size()); node_ctr++)
     {
-        // std::cout << "node_ctr " << node_ctr << std::endl;
         auto node = visit_order[node_ctr];
-        // std::cout << "node " << node << std::endl;
 
         std::vector<uint32_t> cagra_nbrs(_indexingRange);
         uint32_t *nbr_start_ptr = host_cagra_graph.data() + node * _indexingRange;
         uint32_t *nbr_end_ptr = nbr_start_ptr + _indexingRange;
-        // std::cout << *nbr_start_ptr << ' ' << *nbr_end_ptr << std::endl;
         std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbrs.data());
 
         assert(cagra_nbrs.size() > 0);
@@ -1444,11 +1458,6 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
             diskann::cout << "\r" << (100.0 * node_ctr) / (visit_order.size()) << "% of index build completed."
                           << std::flush;
         }
-    }
-
-    if (_nd > 0)
-    {
-        diskann::cout << "done. Link time: " << ((double)link_timer.elapsed() / (double)1000000) << "s" << std::endl;
     }
 }
 
@@ -1529,8 +1538,6 @@ void Index<T, TagT, LabelT>::set_start_points(const T *data, size_t data_count)
     if (data_count != _num_frozen_pts * _dim)
         throw ANNException("Invalid number of points", -1, __FUNCSIG__, __FILE__, __LINE__);
 
-    //     memcpy(_data + _aligned_dim * _max_points, data, _aligned_dim *
-    //     sizeof(T) * _num_frozen_pts);
     for (location_t i = 0; i < _num_frozen_pts; i++)
     {
         _data_store->set_vector((location_t)(i + _max_points), data + i * _dim);
@@ -1588,14 +1595,9 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
 
 template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::build_raft_cagra_index(const T *data)
 {
-    std::cout << "inside build_raft_cagra_index" << std::endl;
-    raft::neighbors::cagra::index_params index_params;
-    index_params.graph_degree = _indexingRange;
-    index_params.intermediate_graph_degree = _indexingQueueSize;
-    index_params.metric = parse_metric_to_raft(_dist_metric);
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, index_params, dataset_view);
+    auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, *_raft_cagra_index_params, dataset_view);
 
     auto stream = handle.get_stream();
     auto device_graph = raft_knn_index.graph();
@@ -1646,8 +1648,12 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
     }
 
     generate_frozen_point();
-    // link();
-    link_cagra();
+    if (_raft_cagra_index)
+    {
+        add_raft_cagra_nbrs();
+    } else {
+        link();
+    }
 
     size_t max = 0, min = SIZE_MAX, total = 0, cnt = 0;
     for (size_t i = 0; i < _nd; i++)
@@ -1663,8 +1669,8 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
                   << "  min:" << min << "  count(deg<2):" << cnt << std::endl;
 
     _has_built = true;
-    // raft_knn_index.reset();
 }
+
 template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_points_to_load, TagVector &tags)
 {
@@ -1793,7 +1799,6 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
     }
 
     auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
-    // raft::print_host_vector("in_mem_data_store_data", _in_mem_data_store->_data, 100, std::cout);
     build_raft_cagra_index(_in_mem_data_store->_data);
     build_with_data_populated(tags);
 }

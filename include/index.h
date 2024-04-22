@@ -4,6 +4,7 @@
 #pragma once
 
 #include "common_includes.h"
+#include <memory>
 #include <optional>
 
 #ifdef EXEC_ENV_OLS
@@ -72,7 +73,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
                             const size_t num_frozen_pts = 0, const bool dynamic_index = false,
                             const bool enable_tags = false, const bool concurrent_consolidate = false,
                             const bool pq_dist_build = false, const size_t num_pq_chunks = 0,
-                            const bool use_opq = false, const bool filtered_index = false);
+                            const bool use_opq = false, const bool filtered_index = false, const bool raft_cagra_index = false, const std::shared_ptr<raft::neighbors::cagra::index_params> raft_cagra_index_params = nullptr);
 
     DISKANN_DLLEXPORT ~Index();
 
@@ -295,7 +296,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     // Acquire exclusive _update_lock before calling
     void link();
 
-    void link_cagra();
+    void add_raft_cagra_nbrs();
 
     // Acquire exclusive _tag_lock and _delete_lock before calling
     int reserve_location();
@@ -458,7 +459,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     // optional around the Raft Cagra index
     // raft::neighbors::cagra::index* raft_knn_index;
-
+    bool _raft_cagra_index = false;
+    std::shared_ptr<raft::neighbors::cagra::index_params> _raft_cagra_index_params = nullptr;
     std::vector<uint32_t> host_cagra_graph;
 };
 } // namespace diskann
