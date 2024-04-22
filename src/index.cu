@@ -1651,7 +1651,9 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
     if (_raft_cagra_index)
     {
         add_raft_cagra_nbrs();
-    } else {
+    }
+    else
+    {
         link();
     }
 

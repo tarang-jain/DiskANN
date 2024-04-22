@@ -70,7 +70,7 @@ template <typename data_t> class InMemDataStore : public AbstractDataStore<data_
     virtual location_t load_impl(AlignedFileReader &reader);
 #endif
 
-  public:
+  private:
     data_t *_data = nullptr;
 
     size_t _aligned_dim;

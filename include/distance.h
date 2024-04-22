@@ -77,7 +77,7 @@ class DistanceCosineInt8 : public Distance<int8_t>
     DistanceCosineInt8() : Distance<int8_t>(diskann::Metric::COSINE)
     {
     }
-    using Distance<int8_t>::compare;
+    // using Distance<int8_t>::compare;
     DISKANN_DLLEXPORT virtual float compare(const int8_t *a, const int8_t *b, uint32_t length) const;
 };
 
@@ -87,7 +87,7 @@ class DistanceL2Int8 : public Distance<int8_t>
     DistanceL2Int8() : Distance<int8_t>(diskann::Metric::L2)
     {
     }
-    using Distance<int8_t>::compare;
+    // using Distance<int8_t>::compare;
     DISKANN_DLLEXPORT virtual float compare(const int8_t *a, const int8_t *b, uint32_t size) const;
 };
 
@@ -98,7 +98,7 @@ class AVXDistanceL2Int8 : public Distance<int8_t>
     AVXDistanceL2Int8() : Distance<int8_t>(diskann::Metric::L2)
     {
     }
-    using Distance<int8_t>::compare;
+    // using Distance<int8_t>::compare;
     DISKANN_DLLEXPORT virtual float compare(const int8_t *a, const int8_t *b, uint32_t length) const;
 };
 
@@ -108,7 +108,7 @@ class DistanceCosineFloat : public Distance<float>
     DistanceCosineFloat() : Distance<float>(diskann::Metric::COSINE)
     {
     }
-    using Distance<float>::compare;
+    // using Distance<float>::compare;
     DISKANN_DLLEXPORT virtual float compare(const float *a, const float *b, uint32_t length) const;
 };
 
@@ -118,7 +118,7 @@ class DistanceL2Float : public Distance<float>
     DistanceL2Float() : Distance<float>(diskann::Metric::L2)
     {
     }
-    using Distance<float>::compare;
+    // using Distance<float>::compare;
 
 #ifdef _WINDOWS
     DISKANN_DLLEXPORT virtual float compare(const float *a, const float *b, uint32_t size) const;
@@ -133,7 +133,7 @@ class AVXDistanceL2Float : public Distance<float>
     AVXDistanceL2Float() : Distance<float>(diskann::Metric::L2)
     {
     }
-    using Distance<float>::compare;
+    // using Distance<float>::compare;
     DISKANN_DLLEXPORT virtual float compare(const float *a, const float *b, uint32_t length) const;
 };
 
@@ -162,7 +162,7 @@ class DistanceL2UInt8 : public Distance<uint8_t>
     DistanceL2UInt8() : Distance<uint8_t>(diskann::Metric::L2)
     {
     }
-    using Distance<uint8_t>::compare;
+    // using Distance<uint8_t>::compare;
     DISKANN_DLLEXPORT virtual float compare(const uint8_t *a, const uint8_t *b, uint32_t size) const;
 };
 
@@ -178,7 +178,7 @@ template <typename T> class DistanceInnerProduct : public Distance<T>
     }
     inline float inner_product(const T *a, const T *b, unsigned size) const;
 
-    using Distance<T>::compare;
+    // using Distance<T>::compare;
 
     inline float compare(const T *a, const T *b, unsigned size) const
     {

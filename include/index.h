@@ -4,8 +4,6 @@
 #pragma once
 
 #include "common_includes.h"
-#include <memory>
-#include <optional>
 
 #ifdef EXEC_ENV_OLS
 #include "aligned_file_reader.h"
