@@ -28,9 +28,11 @@ struct IndexConfig
     bool concurrent_consolidate;
     bool use_opq;
     bool filtered_index;
+    bool raft_cagra_graph;
 
     size_t num_pq_chunks;
     size_t num_frozen_pts;
+    size_t raft_cagra_graph_degree;
 
     std::string label_type;
     std::string tag_type;
@@ -43,15 +45,16 @@ struct IndexConfig
 
   private:
     IndexConfig(DataStoreStrategy data_strategy, GraphStoreStrategy graph_strategy, Metric metric, size_t dimension,
-                size_t max_points, size_t num_pq_chunks, size_t num_frozen_points, bool dynamic_index, bool enable_tags,
-                bool pq_dist_build, bool concurrent_consolidate, bool use_opq, bool filtered_index,
-                std::string &data_type, const std::string &tag_type, const std::string &label_type,
-                std::shared_ptr<IndexWriteParameters> index_write_params,
+                size_t max_points, size_t num_pq_chunks, size_t num_frozen_points, size_t raft_cagra_graph_degree,
+                bool dynamic_index, bool enable_tags, bool pq_dist_build, bool concurrent_consolidate, bool use_opq,
+                bool filtered_index, bool raft_cagra_graph, std::string &data_type, const std::string &tag_type,
+                const std::string &label_type, std::shared_ptr<IndexWriteParameters> index_write_params,
                 std::shared_ptr<IndexSearchParams> index_search_params)
         : data_strategy(data_strategy), graph_strategy(graph_strategy), metric(metric), dimension(dimension),
           max_points(max_points), dynamic_index(dynamic_index), enable_tags(enable_tags), pq_dist_build(pq_dist_build),
           concurrent_consolidate(concurrent_consolidate), use_opq(use_opq), filtered_index(filtered_index),
-          num_pq_chunks(num_pq_chunks), num_frozen_pts(num_frozen_points), label_type(label_type), tag_type(tag_type),
+          raft_cagra_graph(raft_cagra_graph), num_pq_chunks(num_pq_chunks), num_frozen_pts(num_frozen_points),
+          raft_cagra_graph_degree(raft_cagra_graph_degree), label_type(label_type), tag_type(tag_type),
           data_type(data_type), index_write_params(index_write_params), index_search_params(index_search_params)
     {
     }
@@ -130,6 +133,12 @@ class IndexConfigBuilder
         return *this;
     }
 
+    IndexConfigBuilder &is_raft_cagra_graph(bool raft_cagra_graph)
+    {
+        this->_raft_cagra_graph = raft_cagra_graph;
+        return *this;
+    }
+
     IndexConfigBuilder &with_num_pq_chunks(size_t num_pq_chunks)
     {
         this->_num_pq_chunks = num_pq_chunks;
@@ -139,6 +148,12 @@ class IndexConfigBuilder
     IndexConfigBuilder &with_num_frozen_pts(size_t num_frozen_pts)
     {
         this->_num_frozen_pts = num_frozen_pts;
+        return *this;
+    }
+
+    IndexConfigBuilder &with_raft_cagra_graph_degree(size_t raft_cagra_graph_degree)
+    {
+        this->_raft_cagra_graph_degree = raft_cagra_graph_degree;
         return *this;
     }
 
@@ -218,9 +233,9 @@ class IndexConfigBuilder
         }
 
         return IndexConfig(_data_strategy, _graph_strategy, _metric, _dimension, _max_points, _num_pq_chunks,
-                           _num_frozen_pts, _dynamic_index, _enable_tags, _pq_dist_build, _concurrent_consolidate,
-                           _use_opq, _filtered_index, _data_type, _tag_type, _label_type, _index_write_params,
-                           _index_search_params);
+                           _num_frozen_pts, _raft_cagra_graph_degree, _dynamic_index, _enable_tags, _pq_dist_build,
+                           _concurrent_consolidate, _use_opq, _filtered_index, _raft_cagra_graph, _data_type, _tag_type,
+                           _label_type, _index_write_params, _index_search_params);
     }
 
     IndexConfigBuilder(const IndexConfigBuilder &) = delete;
@@ -240,9 +255,11 @@ class IndexConfigBuilder
     bool _concurrent_consolidate = false;
     bool _use_opq = false;
     bool _filtered_index{defaults::HAS_LABELS};
+    bool _raft_cagra_graph = false;
 
     size_t _num_pq_chunks = 0;
     size_t _num_frozen_pts{defaults::NUM_FROZEN_POINTS_STATIC};
+    size_t _raft_cagra_graph_degree = 0;
 
     std::string _label_type{"uint32"};
     std::string _tag_type{"uint32"};

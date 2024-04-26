@@ -37,8 +37,10 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
       _num_frozen_pts(index_config.num_frozen_pts), _dynamic_index(index_config.dynamic_index),
       _enable_tags(index_config.enable_tags), _indexingMaxC(DEFAULT_MAXC), _query_scratch(nullptr),
       _pq_dist(index_config.pq_dist_build), _use_opq(index_config.use_opq),
-      _filtered_index(index_config.filtered_index), _num_pq_chunks(index_config.num_pq_chunks),
-      _delete_set(new tsl::robin_set<uint32_t>), _conc_consolidate(index_config.concurrent_consolidate)
+      _filtered_index(index_config.filtered_index), _raft_cagra_graph(index_config.raft_cagra_graph),
+      _num_pq_chunks(index_config.num_pq_chunks), _delete_set(new tsl::robin_set<uint32_t>),
+      _conc_consolidate(index_config.concurrent_consolidate),
+      _raft_cagra_graph_degree(index_config.raft_cagra_graph_degree)
 {
     if (_dynamic_index && !_enable_tags)
     {
@@ -117,7 +119,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
                               const std::shared_ptr<IndexSearchParams> index_search_params, const size_t num_frozen_pts,
                               const bool dynamic_index, const bool enable_tags, const bool concurrent_consolidate,
                               const bool pq_dist_build, const size_t num_pq_chunks, const bool use_opq,
-                              const bool filtered_index)
+                              const bool filtered_index, const bool raft_cagra_graph,
+                              const size_t raft_cagra_graph_degree)
     : Index(
           IndexConfigBuilder()
               .with_metric(m)
@@ -134,6 +137,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
               .is_use_opq(use_opq)
               .is_filtered(filtered_index)
               .with_data_type(diskann_type_to_name<T>())
+              .is_raft_cagra_graph(raft_cagra_graph)
+              .with_raft_cagra_graph_degree(raft_cagra_graph_degree)
               .build(),
           IndexFactory::construct_datastore<T>(DataStoreStrategy::MEMORY,
                                                (max_points == 0 ? (size_t)1 : max_points) +
@@ -1506,6 +1511,29 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
 }
 
 template <typename T, typename TagT, typename LabelT>
+void Index<T, TagT, LabelT>::add_raft_cagra_neighbours(const std::shared_ptr<uint32_t> raft_cagra_graph_ptr)
+{
+    uint32_t *raw_ptr = raft_cagra_graph_ptr.get();
+#pragma omp parallel for schedule(dynamic, 2048)
+    for (int64_t node = 0; node < _nd; node++)
+    {
+        std::vector<uint32_t> node_nbrs(_raft_cagra_graph_degree);
+        uint32_t *nbr_start_ptr = raw_ptr + node * _raft_cagra_graph_degree;
+        uint32_t *nbr_end_ptr = nbr_start_ptr + _raft_cagra_graph_degree;
+        std::copy(nbr_start_ptr, nbr_end_ptr, node_nbrs.data());
+
+        assert(node_nbrs.size() > 0);
+
+        {
+            LockGuard guard(_locks[node]);
+
+            _graph_store->set_neighbours(node, node_nbrs);
+            assert(_graph_store->get_neighbours((location_t)node).size() <= _indexingRange);
+        }
+    }
+}
+
+template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &tags)
 {
     diskann::cout << "Starting index build with " << _nd << " points... " << std::endl;
@@ -1576,7 +1604,8 @@ void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_point
     }
 }
 template <typename T, typename TagT, typename LabelT>
-void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags)
+void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags,
+                                   const std::shared_ptr<uint32_t> raft_cagra_graph_ptr)
 {
     if (num_points_to_load == 0)
     {
@@ -1596,8 +1625,12 @@ void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_loa
 
         _data_store->populate_data(data, (location_t)num_points_to_load);
     }
-
-    build_with_data_populated(tags);
+    if (!_raft_cagra_graph)
+        build_with_data_populated(tags);
+    else
+    {
+        add_raft_cagra_neighbours(raft_cagra_graph_ptr);
+    }
 }
 
 template <typename T, typename TagT, typename LabelT>

@@ -66,7 +66,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
                             const size_t num_frozen_pts = 0, const bool dynamic_index = false,
                             const bool enable_tags = false, const bool concurrent_consolidate = false,
                             const bool pq_dist_build = false, const size_t num_pq_chunks = 0,
-                            const bool use_opq = false, const bool filtered_index = false);
+                            const bool use_opq = false, const bool filtered_index = false,
+                            const bool raft_cagra_graph = false, const size_t raft_cagra_graph_degree = 0);
 
     DISKANN_DLLEXPORT ~Index();
 
@@ -98,7 +99,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     DISKANN_DLLEXPORT void build(const char *filename, const size_t num_points_to_load, const char *tag_filename);
 
     // Batch build from a data array, which must pad vectors to aligned_dim
-    DISKANN_DLLEXPORT void build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags);
+    DISKANN_DLLEXPORT void build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags,
+                                 const std::shared_ptr<uint32_t> raft_cagra_graph_ptr = nullptr);
 
     // Based on filter params builds a filtered or unfiltered index
     DISKANN_DLLEXPORT void build(const std::string &data_file, const size_t num_points_to_load,
@@ -235,6 +237,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     // No copy/assign.
     Index(const Index<T, TagT, LabelT> &) = delete;
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
+
+    void add_raft_cagra_neighbours(const std::shared_ptr<uint32_t> raft_cagra_graph_ptr);
 
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling
@@ -444,5 +448,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     std::vector<non_recursive_mutex> _locks;
 
     static const float INDEX_GROWTH_FACTOR;
+
+    bool _raft_cagra_graph = false;
+    size_t _raft_cagra_graph_degree = 0;
 };
 } // namespace diskann
