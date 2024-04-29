@@ -235,8 +235,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     virtual void _set_universal_label(const LabelType universal_label) override;
 
     // No copy/assign.
-    Index(const Index<T, TagT, LabelT> &) = delete;
-    Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
+    // Index(const Index<T, TagT, LabelT> &) = delete;
+    // Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
     void add_raft_cagra_neighbours(const std::shared_ptr<uint32_t> raft_cagra_graph_ptr);
 
