@@ -108,7 +108,7 @@ class DistanceCosineFloat : public Distance<float>
     DistanceCosineFloat() : Distance<float>(diskann::Metric::COSINE)
     {
     }
-    using Distance<int8_t>::compare;
+    using Distance<float>::compare;
     DISKANN_DLLEXPORT virtual float compare(const float *a, const float *b, uint32_t length) const override;
 };
 
