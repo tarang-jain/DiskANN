@@ -100,7 +100,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     // Batch build from a data array, which must pad vectors to aligned_dim
     DISKANN_DLLEXPORT void build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags,
-                                 const std::shared_ptr<uint32_t> raft_cagra_graph_ptr = nullptr);
+                                 const std::vector<uint32_t> &raft_cagra_graph_vec = std::vector<uint32_t>());
 
     // Based on filter params builds a filtered or unfiltered index
     DISKANN_DLLEXPORT void build(const std::string &data_file, const size_t num_points_to_load,
@@ -238,7 +238,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     Index(const Index<T, TagT, LabelT> &) = delete;
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
-    void add_raft_cagra_neighbours(const std::shared_ptr<uint32_t> raft_cagra_graph_ptr);
+    void add_raft_cagra_neighbours(const std::vector<uint32_t>& raft_cagra_graph_vec);
 
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling

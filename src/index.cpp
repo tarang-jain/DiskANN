@@ -540,6 +540,7 @@ void Index<T, TagT, LabelT>::load(AlignedFileReader &reader, uint32_t num_thread
 void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, uint32_t search_l)
 {
 #endif
+    std::cout << "inside DiskANN load" << std::endl;
     std::unique_lock<std::shared_timed_mutex> ul(_update_lock);
     std::unique_lock<std::shared_timed_mutex> cl(_consolidate_lock);
     std::unique_lock<std::shared_timed_mutex> tl(_tag_lock);
@@ -554,8 +555,11 @@ void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, ui
     std::string labels_to_medoids = mem_index_file + "_labels_to_medoids.txt";
     std::string labels_map_file = mem_index_file + "_labels_map.txt";
 
+    std::cout << "set strings" << std::endl;
+
     if (!_save_as_one_file)
     {
+        std::cout << "_save_as_one_file was false" << std::endl;
         // For DLVS Store, we will not support saving the index in multiple
         // files.
 #ifndef EXEC_ENV_OLS
@@ -573,10 +577,12 @@ void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, ui
             tags_file_num_pts = load_tags(tags_file);
         }
         graph_num_pts = load_graph(graph_file, data_file_num_pts);
+        std::cout << "loaded everything in this if block" << std::endl;
 #endif
     }
     else
     {
+        std::cout << "inside else block" << std::endl;
         diskann::cout << "Single index file saving/loading support not yet "
                          "enabled. Not loading the index."
                       << std::endl;
@@ -585,6 +591,7 @@ void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, ui
 
     if (data_file_num_pts != graph_num_pts || (data_file_num_pts != tags_file_num_pts && _enable_tags))
     {
+        std::cout << "inside error block" << std::endl;
         std::stringstream stream;
         stream << "ERROR: When loading index, loaded " << data_file_num_pts << " points from datafile, "
                << graph_num_pts << " from graph, and " << tags_file_num_pts
@@ -595,6 +602,7 @@ void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, ui
 
     if (file_exists(labels_file))
     {
+        std::cout << "labels_file exists" << std::endl;
         _label_map = load_label_map(labels_map_file);
         parse_label_file(labels_file, label_num_pts);
         assert(label_num_pts == data_file_num_pts - _num_frozen_pts);
@@ -637,6 +645,8 @@ void Index<T, TagT, LabelT>::load(const char *filename, uint32_t num_threads, ui
             _use_universal_label = true;
             universal_label_reader.close();
         }
+    } else {
+        std::cout << "labels_file does not exists" << std::endl;
     }
 
     _nd = data_file_num_pts - _num_frozen_pts;
@@ -1511,15 +1521,15 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
 }
 
 template <typename T, typename TagT, typename LabelT>
-void Index<T, TagT, LabelT>::add_raft_cagra_neighbours(const std::shared_ptr<uint32_t> raft_cagra_graph_ptr)
+void Index<T, TagT, LabelT>::add_raft_cagra_neighbours(const std::vector<uint32_t>& raft_cagra_graph_vec)
 {
-    uint32_t *raw_ptr = raft_cagra_graph_ptr.get();
+    const uint32_t *raw_ptr = raft_cagra_graph_vec.data();
 #pragma omp parallel for schedule(dynamic, 2048)
     for (int64_t node = 0; node < _nd; node++)
     {
         std::vector<uint32_t> node_nbrs(_raft_cagra_graph_degree);
-        uint32_t *nbr_start_ptr = raw_ptr + node * _raft_cagra_graph_degree;
-        uint32_t *nbr_end_ptr = nbr_start_ptr + _raft_cagra_graph_degree;
+        const uint32_t *nbr_start_ptr = raw_ptr + node * _raft_cagra_graph_degree;
+        const uint32_t *nbr_end_ptr = nbr_start_ptr + _raft_cagra_graph_degree;
         std::copy(nbr_start_ptr, nbr_end_ptr, node_nbrs.data());
 
         assert(node_nbrs.size() > 0);
@@ -1605,7 +1615,7 @@ void Index<T, TagT, LabelT>::_build(const DataType &data, const size_t num_point
 }
 template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_load, const std::vector<TagT> &tags,
-                                   const std::shared_ptr<uint32_t> raft_cagra_graph_ptr)
+                                   const std::vector<uint32_t>& raft_cagra_graph_vec)
 {
     if (num_points_to_load == 0)
     {
@@ -1622,14 +1632,14 @@ void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_loa
     {
         std::unique_lock<std::shared_timed_mutex> tl(_tag_lock);
         _nd = num_points_to_load;
-
         _data_store->populate_data(data, (location_t)num_points_to_load);
     }
+    std::cout << "raft_cagra_graph" << _raft_cagra_graph << std::endl;
     if (!_raft_cagra_graph)
         build_with_data_populated(tags);
     else
     {
-        add_raft_cagra_neighbours(raft_cagra_graph_ptr);
+        add_raft_cagra_neighbours(raft_cagra_graph_vec);
     }
 }
 
@@ -1993,6 +2003,7 @@ template <typename IdType>
 std::pair<uint32_t, uint32_t> Index<T, TagT, LabelT>::search(const T *query, const size_t K, const uint32_t L,
                                                              IdType *indices, float *distances)
 {
+    std::cout << "inside diskann search" << std::endl;
     if (K > (uint64_t)L)
     {
         throw ANNException("Set L to a value of at least K", -1, __FUNCSIG__, __FILE__, __LINE__);
@@ -2009,6 +2020,8 @@ std::pair<uint32_t, uint32_t> Index<T, TagT, LabelT>::search(const T *query, con
         diskann::cout << "Resize completed. New scratch->L is " << scratch->get_L() << std::endl;
     }
 
+    std::cout << "created scratch space success" << std::endl;
+
     const std::vector<LabelT> unused_filter_label;
     const std::vector<uint32_t> init_ids = get_init_ids();
 
@@ -2019,6 +2032,8 @@ std::pair<uint32_t, uint32_t> Index<T, TagT, LabelT>::search(const T *query, con
     auto retval = iterate_to_fixed_point(scratch, L, init_ids, false, unused_filter_label, true);
 
     NeighborPriorityQueue &best_L_nodes = scratch->best_l_nodes();
+
+    std::cout << "created NeighborPriorityQueue success" << std::endl;
 
     size_t pos = 0;
     for (size_t i = 0; i < best_L_nodes.size(); ++i)
