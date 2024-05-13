@@ -70,9 +70,10 @@ template <typename data_t> class InMemDataStore : public AbstractDataStore<data_
     virtual location_t load_impl(AlignedFileReader &reader);
 #endif
 
-  private:
+  public:
     data_t *_data = nullptr;
 
+  private:
     size_t _aligned_dim;
 
     // It may seem weird to put distance metric along with the data store class,
