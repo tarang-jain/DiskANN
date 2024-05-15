@@ -455,9 +455,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     static const float INDEX_GROWTH_FACTOR;
 
-    // optional around the Raft Cagra index
-    // raft::neighbors::cagra::index* raft_knn_index;
-    bool _raft_cagra_index = false;
+    bool _raft_cagra_index = true;
     std::shared_ptr<raft::neighbors::cagra::index_params> _raft_cagra_index_params = nullptr;
     std::vector<uint32_t> host_cagra_graph;
 };

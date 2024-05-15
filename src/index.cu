@@ -1310,6 +1310,7 @@ void Index<T, TagT, LabelT>::inter_insert(uint32_t n, std::vector<uint32_t> &pru
 
 template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::link()
 {
+    std::cout << "inside link()" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1413,6 +1414,7 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
 
 template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::add_raft_cagra_nbrs()
 {
+    std::cout << "add_raft_cagra_neighbors" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1603,8 +1605,6 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     auto device_graph = raft_knn_index.graph();
     host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
 
-    std::cout << "host_cagra_graph_size" << host_cagra_graph.size() << std::endl;
-
     thrust::copy(thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
                  thrust::device_ptr<const uint32_t>(device_graph.data_handle() + device_graph.size()),
                  host_cagra_graph.data());
@@ -1711,9 +1711,12 @@ void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_loa
         _data_store->populate_data(data, (location_t)num_points_to_load);
     }
 
-    build_raft_cagra_index(data);
-
-    build_with_data_populated(tags);
+    if (_raft_cagra_index)
+        build_raft_cagra_index(data);
+    else
+    {
+        build_with_data_populated(tags);
+    }
 }
 
 template <typename T, typename TagT, typename LabelT>
@@ -1801,8 +1804,11 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
     }
 
     auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
-    build_raft_cagra_index(_in_mem_data_store->_data);
-    build_with_data_populated(tags);
+
+    if (_raft_cagra_index)
+        build_raft_cagra_index(_in_mem_data_store->_data);
+    else
+        build_with_data_populated(tags);
 }
 
 template <typename T, typename TagT, typename LabelT>

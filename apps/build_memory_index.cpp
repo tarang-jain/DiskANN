@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <cstdint>
 #include <omp.h>
 #include <cstring>
 #include <boost/program_options.hpp>
@@ -27,7 +28,7 @@ int main(int argc, char **argv)
     std::string data_type, dist_fn, data_path, index_path_prefix, label_file, universal_label, label_type;
     uint32_t num_threads, R, L, Lf, build_PQ_bytes;
     float alpha;
-    bool use_pq_build, use_opq;
+    bool use_pq_build, use_opq, raft_cagra_index;
 
     po::options_description desc{
         program_options_utils::make_program_description("build_memory_index", "Build a memory-based DiskANN index.")};
@@ -70,6 +71,8 @@ int main(int argc, char **argv)
                                        program_options_utils::FILTERED_LBUILD);
         optional_configs.add_options()("label_type", po::value<std::string>(&label_type)->default_value("uint"),
                                        program_options_utils::LABEL_TYPE_DESCRIPTION);
+        optional_configs.add_options()("raft_cagra_index", po::value<bool>(&raft_cagra_index)->default_value(true),
+                                       program_options_utils::RAFT_CAGRA_INDEX);
 
         // Merge required and optional parameters
         desc.add(required_configs).add(optional_configs);
@@ -146,6 +149,7 @@ int main(int argc, char **argv)
                           .is_use_opq(use_opq)
                           .is_pq_dist_build(use_pq_build)
                           .with_num_pq_chunks(build_PQ_bytes)
+                          .is_raft_cagra_index(raft_cagra_index)
                           .build();
 
         auto index_factory = diskann::IndexFactory(config);
