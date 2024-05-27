@@ -32,6 +32,8 @@ class InMemGraphStore : public AbstractGraphStore
     virtual size_t get_max_range_of_graph() override;
     virtual uint32_t get_max_observed_degree() override;
 
+    std::vector<std::vector<uint32_t>>& graph() override;
+
   protected:
     virtual std::tuple<uint32_t, uint32_t, size_t> load_impl(const std::string &filename, size_t expected_num_points);
 #ifdef EXEC_ENV_OLS
@@ -45,6 +47,7 @@ class InMemGraphStore : public AbstractGraphStore
     size_t _max_range_of_graph = 0;
     uint32_t _max_observed_degree = 0;
 
+  public:
     std::vector<std::vector<uint32_t>> _graph;
 };
 

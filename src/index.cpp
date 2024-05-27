@@ -1514,21 +1514,32 @@ template <typename T, typename TagT, typename LabelT>
 void Index<T, TagT, LabelT>::add_raft_cagra_neighbours(const std::vector<uint32_t> &raft_cagra_graph_vec)
 {
     const uint32_t *raw_ptr = raft_cagra_graph_vec.data();
+    std::vector<std::vector<uint32_t>> &graph = _graph_store->graph();
 #pragma omp parallel for schedule(dynamic, 2048)
-    for (int64_t node = 0; node < _nd; node++)
+    for (int i = 0; i < graph.size(); i++)
     {
-        std::vector<uint32_t> node_nbrs(_raft_cagra_graph_degree);
-        const uint32_t *nbr_start_ptr = raw_ptr + node * _raft_cagra_graph_degree;
-        const uint32_t *nbr_end_ptr = nbr_start_ptr + _raft_cagra_graph_degree;
-        std::copy(nbr_start_ptr, nbr_end_ptr, node_nbrs.data());
+        graph[i].resize(_raft_cagra_graph_degree);
+    }
+//     for (int64_t node = 0; node < _nd; node++)
+//     {
+//         std::vector<uint32_t> node_nbrs(_raft_cagra_graph_degree);
+//         const uint32_t *nbr_start_ptr = raw_ptr + node * _raft_cagra_graph_degree;
+//         const uint32_t *nbr_end_ptr = nbr_start_ptr + _raft_cagra_graph_degree;
+//         std::copy(nbr_start_ptr, nbr_end_ptr, node_nbrs.data());
 
-        assert(node_nbrs.size() > 0);
+//         assert(node_nbrs.size() > 0);
 
+//             _graph_store->set_neighbours(node, node_nbrs);
+//             assert(_graph_store->get_neighbours((location_t)node).size() <= _indexingRange);
+//         }
+//     }
+    std::cout << "_indexingThreads" << _indexingThreads << std::endl;
+#pragma omp parallel for num_threads(_indexingThreads) collapse(2)
+    for (int i = 0; i < graph.size(); i++)
+    {
+        for (int j = 0; j < _raft_cagra_graph_degree; j++)
         {
-            LockGuard guard(_locks[node]);
-
-            _graph_store->set_neighbours(node, node_nbrs);
-            assert(_graph_store->get_neighbours((location_t)node).size() <= _indexingRange);
+            graph[i][j] = raft_cagra_graph_vec[i * _raft_cagra_graph_degree + j];
         }
     }
     _has_built = true;

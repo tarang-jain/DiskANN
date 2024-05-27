@@ -48,6 +48,8 @@ class AbstractGraphStore
         return _capacity;
     }
 
+    virtual std::vector<std::vector<uint32_t>>& graph() = 0;
+
   protected:
     // Internal function, changes total points when resize_graph is called.
     void set_total_points(size_t new_capacity)

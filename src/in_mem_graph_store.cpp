@@ -239,4 +239,8 @@ uint32_t InMemGraphStore::get_max_observed_degree()
     return _max_observed_degree;
 }
 
+std::vector<std::vector<uint32_t>>& InMemGraphStore::graph() {
+    return _graph;
+}
+
 } // namespace diskann
