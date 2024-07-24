@@ -43,7 +43,7 @@ project(${PROJECT_NAME} LANGUAGES CXX CUDA)
 # ------------- configure raft -----------------#
 
 rapids_cpm_init()
-include(cmake/thirdparty/get_raft.cmake)
+# include(cmake/thirdparty/get_raft.cmake)
 
 if(NOT MSVC)
 	set(CMAKE_CXX_COMPILER g++)

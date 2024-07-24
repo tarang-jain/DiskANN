@@ -1597,7 +1597,7 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
 {
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, *_raft_cagra_index_params, dataset_view);
+    auto raft_knn_index = raft::neighbors::cagra::detail::build<T, uint32_t>(handle, *_raft_cagra_index_params, dataset_view, std::nullopt, std::nullopt, raft::neighbors::ivf_pq::index_params::from_dataset(dataset_view), std::nullopt, false);
 
     auto stream = handle.get_stream();
     auto device_graph = raft_knn_index.graph();
