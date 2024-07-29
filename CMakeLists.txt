@@ -354,6 +354,6 @@ if(PYBIND)
     add_subdirectory(python)
 endif()
 
-if(NOT TARGET raft::raft)
-    find_package(raft COMPONENTS compiled distributed)
+if(NOT TARGET cuvs::cuvs)
+    find_package(cuvs)
 endif()

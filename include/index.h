@@ -29,7 +29,7 @@
 #define EXPAND_IF_FULL 0
 #define DEFAULT_MAXC 750
 
-// namespace raft::neighbors::cagra{
+// namespace cuvs::neighbors::cagra{
 // template <typename T, typename IdxT>
 // class index;
 // }
@@ -71,7 +71,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
                             const size_t num_frozen_pts = 0, const bool dynamic_index = false,
                             const bool enable_tags = false, const bool concurrent_consolidate = false,
                             const bool pq_dist_build = false, const size_t num_pq_chunks = 0,
-                            const bool use_opq = false, const bool filtered_index = false, const bool raft_cagra_index = false, const std::shared_ptr<raft::neighbors::cagra::index_params> raft_cagra_index_params = nullptr);
+                            const bool use_opq = false, const bool filtered_index = false, const bool cuvs_cagra_index = false, const std::shared_ptr<cuvs::neighbors::cagra::index_params> cuvs_cagra_index_params = nullptr);
 
     DISKANN_DLLEXPORT ~Index();
 
@@ -242,7 +242,9 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
     // Build the raft CAGRA index
-    void build_raft_cagra_index(const T* data);
+    void build_cuvs_cagra_index(const T* data);
+
+    void build_cuvs_cagra_index_quantized(const uint8_t *data);
 
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling
@@ -294,7 +296,7 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     // Acquire exclusive _update_lock before calling
     void link();
 
-    void add_raft_cagra_nbrs();
+    void add_cuvs_cagra_nbrs();
 
     // Acquire exclusive _tag_lock and _delete_lock before calling
     int reserve_location();
@@ -455,8 +457,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     static const float INDEX_GROWTH_FACTOR;
 
-    bool _raft_cagra_index = true;
-    std::shared_ptr<raft::neighbors::cagra::index_params> _raft_cagra_index_params = nullptr;
+    bool _cuvs_cagra_index = true;
+    std::shared_ptr<cuvs::neighbors::cagra::index_params> _cuvs_cagra_index_params = nullptr;
     std::vector<uint32_t> host_cagra_graph;
 };
 } // namespace diskann

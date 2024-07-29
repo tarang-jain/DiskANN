@@ -24,21 +24,21 @@
 
 #include "index.h"
 #include <xmmintrin.h>
-#include <raft/neighbors/cagra.cuh>
+#include <cuvs/neighbors/cagra.hpp>
 
 #define MAX_POINTS_FOR_USING_BITSET 10000000
 
 namespace diskann
 {
 
-raft::distance::DistanceType parse_metric_to_raft(diskann::Metric m)
+cuvs::distance::DistanceType parse_metric_to_cuvs(diskann::Metric m)
 {
     switch (m)
     {
     case diskann::Metric::L2:
-        return raft::distance::DistanceType::L2Expanded;
+        return cuvs::distance::DistanceType::L2Expanded;
     case diskann::Metric::INNER_PRODUCT:
-        return raft::distance::DistanceType::InnerProduct;
+        return cuvs::distance::DistanceType::InnerProduct;
     default:
         throw ANNException("ERROR: RAFT only supports L2 and INNER_PRODUCT.", -1, __FUNCSIG__, __FILE__, __LINE__);
     }
@@ -56,8 +56,9 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
       _pq_dist(index_config.pq_dist_build), _use_opq(index_config.use_opq),
       _filtered_index(index_config.filtered_index), _num_pq_chunks(index_config.num_pq_chunks),
       _delete_set(new tsl::robin_set<uint32_t>), _conc_consolidate(index_config.concurrent_consolidate),
-      _raft_cagra_index(index_config.raft_cagra_index)
+      _cuvs_cagra_index(index_config.cuvs_cagra_index)
 {
+    std::cout << "inside params function index_config.cuvs_cagra_index" << index_config.cuvs_cagra_index << " _cuvs_cagra_index " << _cuvs_cagra_index << std::endl;
     if (_dynamic_index && !_enable_tags)
     {
         throw ANNException("ERROR: Dynamic Indexing must have tags enabled.", -1, __FUNCSIG__, __FILE__, __LINE__);
@@ -128,18 +129,18 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
         }
     }
 
-    if (_raft_cagra_index)
+    if (_cuvs_cagra_index)
     {
-        if (index_config.raft_cagra_index_params != nullptr)
+        if (index_config.cuvs_cagra_index_params != nullptr)
         {
-            assert(parse_metric_to_raft(_dist_metric) == raft_cagra_index_params->metric);
-            _raft_cagra_index_params = index_config.raft_cagra_index_params;
+            assert(parse_metric_to_raft(_dist_metric) == cuvs_cagra_index_params->metric);
+            _cuvs_cagra_index_params = index_config.cuvs_cagra_index_params;
         }
         else
         {
-            raft::neighbors::cagra::index_params raft_cagra_index_params;
-            raft_cagra_index_params.metric = parse_metric_to_raft(_dist_metric);
-            _raft_cagra_index_params = std::make_shared<raft::neighbors::cagra::index_params>(raft_cagra_index_params);
+            cuvs::neighbors::cagra::index_params cuvs_cagra_index_params;
+            cuvs_cagra_index_params.metric = parse_metric_to_raft(_dist_metric);
+            _cuvs_cagra_index_params = std::make_shared<cuvs::neighbors::cagra::index_params>(cuvs_cagra_index_params);
         }
     }
 }
@@ -150,8 +151,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
                               const std::shared_ptr<IndexSearchParams> index_search_params, const size_t num_frozen_pts,
                               const bool dynamic_index, const bool enable_tags, const bool concurrent_consolidate,
                               const bool pq_dist_build, const size_t num_pq_chunks, const bool use_opq,
-                              const bool filtered_index, const bool raft_cagra_index,
-                              const std::shared_ptr<raft::neighbors::cagra::index_params> raft_cagra_index_params)
+                              const bool filtered_index, const bool cuvs_cagra_index,
+                              const std::shared_ptr<cuvs::neighbors::cagra::index_params> cuvs_cagra_index_params)
     : Index(
           IndexConfigBuilder()
               .with_metric(m)
@@ -168,8 +169,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
               .is_use_opq(use_opq)
               .is_filtered(filtered_index)
               .with_data_type(diskann_type_to_name<T>())
-              .is_raft_cagra_index(raft_cagra_index)
-              .with_raft_cagra_index_params(raft_cagra_index_params)
+              .is_cuvs_cagra_index(cuvs_cagra_index)
+              .with_cuvs_cagra_index_params(cuvs_cagra_index_params)
               .build(),
           IndexFactory::construct_datastore<T>(DataStoreStrategy::MEMORY,
                                                (max_points == 0 ? (size_t)1 : max_points) +
@@ -181,7 +182,8 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
                                              (size_t)((index_parameters == nullptr ? 0 : index_parameters->max_degree) *
                                                       defaults::GRAPH_SLACK_FACTOR * 1.05)))
 {
-    if (_pq_dist)
+    std::cout << "inside index build cuvs_cagra_index: " << cuvs_cagra_index << " _cuvs_cagra_index: " << _cuvs_cagra_index << std::endl;
+    if (_pq_dist && !cuvs_cagra_index)
     {
         _pq_data_store = IndexFactory::construct_pq_datastore<T>(DataStoreStrategy::MEMORY, max_points + num_frozen_pts,
                                                                  dim, m, num_pq_chunks, use_opq);
@@ -1412,9 +1414,9 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     }
 }
 
-template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::add_raft_cagra_nbrs()
+template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::add_cuvs_cagra_nbrs()
 {
-    std::cout << "add_raft_cagra_neighbors" << std::endl;
+    std::cout << "add_cuvs_cagra_neighbors" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1595,14 +1597,17 @@ void Index<T, TagT, LabelT>::set_start_points_at_random(T radius, uint32_t rando
     set_start_points(points_data.data(), points_data.size());
 }
 
-template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::build_raft_cagra_index(const T *data)
+template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::build_cuvs_cagra_index(const T *data)
 {
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto raft_knn_index = raft::neighbors::cagra::build<T, uint32_t>(handle, *_raft_cagra_index_params, dataset_view);
+    auto cuvs_index = cuvs::neighbors::cagra::build<T, uint32_t>(handle, *_cuvs_cagra_index_params, dataset_view);
+    auto pq_params = raft::neighbors::ivf_pq::index_params::from_dataset(dataset_view);
+    pq_params.pq_dim = 192;
+    auto cuvs_index = cuvs::neighbors::cagra::detail::build<T, uint32_t>(handle, *_cuvs_cagra_index_params, dataset_view, std::nullopt, std::nullopt, pq_params, std::nullopt, false);
 
     auto stream = handle.get_stream();
-    auto device_graph = raft_knn_index.graph();
+    auto device_graph = cuvs_index.graph();
     host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
 
     thrust::copy(thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
@@ -1648,9 +1653,9 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
     }
 
     generate_frozen_point();
-    if (_raft_cagra_index)
+    if (_cuvs_cagra_index)
     {
-        add_raft_cagra_nbrs();
+        add_cuvs_cagra_nbrs();
     }
     else
     {
@@ -1711,8 +1716,8 @@ void Index<T, TagT, LabelT>::build(const T *data, const size_t num_points_to_loa
         _data_store->populate_data(data, (location_t)num_points_to_load);
     }
 
-    if (_raft_cagra_index)
-        build_raft_cagra_index(data);
+    if (_cuvs_cagra_index)
+        build_cuvs_cagra_index(data);
     else
     {
         build_with_data_populated(tags);
@@ -1776,7 +1781,7 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
 
     // REFACTOR PQ TODO: We can remove this if and add a check in the InMemDataStore
     // to not populate_data if it has been called once.
-    if (_pq_dist)
+    if (_pq_dist && !_cuvs_cagra_index)
     {
 #ifdef EXEC_ENV_OLS
         std::stringstream ss;
@@ -1803,11 +1808,12 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
         _nd = num_points_to_load;
     }
 
-    auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
-
-    if (_raft_cagra_index)
-        build_raft_cagra_index(_in_mem_data_store->_data);
-    else
+    if (_cuvs_cagra_index)
+    {
+        auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
+        build_cuvs_cagra_index(_in_mem_data_store->_data);
+    }
+    // else
         build_with_data_populated(tags);
 }
 
