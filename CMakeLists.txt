@@ -40,10 +40,7 @@ rapids_cuda_init_architectures(${PROJECT_NAME})
 
 project(${PROJECT_NAME} LANGUAGES CXX CUDA)
 
-# ------------- configure raft -----------------#
-
 rapids_cpm_init()
-include(cmake/thirdparty/get_raft.cmake)
 
 if(NOT MSVC)
 	set(CMAKE_CXX_COMPILER g++)
@@ -322,10 +319,6 @@ else()
 endif()
 
 add_subdirectory(src)
-if (NOT PYBIND)
-    add_subdirectory(apps)
-    add_subdirectory(apps/utils)
-endif()
 
 if (UNIT_TEST)
     enable_testing()
