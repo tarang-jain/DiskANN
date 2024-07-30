@@ -164,18 +164,6 @@ if (MSVC)
         "${DISKANN_MKL_LIB_PATH}/mkl_intel_thread.lib")
 else()
     # expected path for manual intel mkl installs
-    set(POSSIBLE_OMP_PATHS "/opt/intel/oneapi/compiler/latest/linux/compiler/lib/intel64_lin/libiomp5.so;/usr/lib/x86_64-linux-gnu/libiomp5.so;/opt/intel/lib/intel64_lin/libiomp5.so")
-    foreach(POSSIBLE_OMP_PATH ${POSSIBLE_OMP_PATHS})
-        if (EXISTS ${POSSIBLE_OMP_PATH})
-            get_filename_component(OMP_PATH ${POSSIBLE_OMP_PATH} DIRECTORY)
-        endif()
-    endforeach()
-
-    if(NOT OMP_PATH)
-        message(FATAL_ERROR "Could not find Intel OMP in standard locations; use -DOMP_PATH to specify the install location for your environment")
-    endif()
-    link_directories(${OMP_PATH})
-
     set(POSSIBLE_MKL_LIB_PATHS "/opt/intel/oneapi/mkl/latest/lib/intel64/libmkl_core.so;/usr/lib/x86_64-linux-gnu/libmkl_core.so;/opt/intel/mkl/lib/intel64/libmkl_core.so")
     foreach(POSSIBLE_MKL_LIB_PATH ${POSSIBLE_MKL_LIB_PATHS})
         if (EXISTS ${POSSIBLE_MKL_LIB_PATH})
