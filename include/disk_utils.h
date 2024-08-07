@@ -31,6 +31,8 @@ typedef int FileHandle;
 #include "utils.h"
 #include "windows_customizations.h"
 
+#include <cuvs/neighbors/cagra.hpp>
+
 namespace diskann
 {
 const size_t MAX_SAMPLE_POINTS_FOR_WARMUP = 100000;
@@ -82,7 +84,7 @@ DISKANN_DLLEXPORT int build_merged_vamana_index(std::string base_file, diskann::
                                                 uint32_t num_threads, bool use_filters = false,
                                                 const std::string &label_file = std::string(""),
                                                 const std::string &labels_to_medoids_file = std::string(""),
-                                                const std::string &universal_label = "", const uint32_t Lf = 0, bool use_cuvs_cagra_graph = false);
+                                                const std::string &universal_label = "", const uint32_t Lf = 0, std::shared_ptr<cuvs::neighbors::cagra::index_params> cagra_index_params = nullptr);
 
 template <typename T, typename LabelT>
 DISKANN_DLLEXPORT uint32_t optimize_beamwidth(std::unique_ptr<diskann::PQFlashIndex<T, LabelT>> &_pFlashIndex,
@@ -99,7 +101,7 @@ DISKANN_DLLEXPORT int build_disk_index(
     const std::string &label_file = std::string(""), // default is empty string for no label_file
     const std::string &universal_label = "", const uint32_t filter_threshold = 0,
     const uint32_t Lf = 0,
-    bool use_cuvs_cagra_graph = false); // default is empty string for no universal label
+    std::shared_ptr<cuvs::neighbors::cagra::index_params> cagra_index_params = nullptr); // default is empty string for no universal label
 
 template <typename T>
 DISKANN_DLLEXPORT void create_disk_layout(const std::string base_file, const std::string mem_index_file,

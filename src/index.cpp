@@ -14,6 +14,8 @@
 #include "tsl/robin_set.h"
 #include "windows_customizations.h"
 #include "tag_uint128.h"
+#include <raft/core/device_resources.hpp>
+#include <raft/util/cudart_utils.hpp>
 #if defined(DISKANN_RELEASE_UNUSED_TCMALLOC_MEMORY_AT_CHECKPOINTS) && defined(DISKANN_BUILD)
 #include "gperftools/malloc_extension.h"
 #endif
@@ -58,8 +60,6 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
       _delete_set(new tsl::robin_set<uint32_t>), _conc_consolidate(index_config.concurrent_consolidate),
       _cuvs_cagra_index(index_config.cuvs_cagra_index)
 {
-    std::cout << "inside params function index_config.cuvs_cagra_index" << index_config.cuvs_cagra_index
-              << " _cuvs_cagra_index " << _cuvs_cagra_index << std::endl;
     if (_dynamic_index && !_enable_tags)
     {
         throw ANNException("ERROR: Dynamic Indexing must have tags enabled.", -1, __FUNCSIG__, __FILE__, __LINE__);
@@ -140,6 +140,7 @@ Index<T, TagT, LabelT>::Index(const IndexConfig &index_config, std::shared_ptr<A
         else
         {
             cuvs::neighbors::cagra::index_params cuvs_cagra_index_params;
+            cuvs_cagra_index_params.graph_degree = _indexingRange;
             cuvs_cagra_index_params.metric = parse_metric_to_cuvs(_dist_metric);
             _cuvs_cagra_index_params = std::make_shared<cuvs::neighbors::cagra::index_params>(cuvs_cagra_index_params);
         }
@@ -183,9 +184,7 @@ Index<T, TagT, LabelT>::Index(Metric m, const size_t dim, const size_t max_point
                                              (size_t)((index_parameters == nullptr ? 0 : index_parameters->max_degree) *
                                                       defaults::GRAPH_SLACK_FACTOR * 1.05)))
 {
-    std::cout << "inside index build cuvs_cagra_index: " << cuvs_cagra_index
-              << " _cuvs_cagra_index: " << _cuvs_cagra_index << std::endl;
-    if (_pq_dist && !cuvs_cagra_index)
+    if (_pq_dist)
     {
         _pq_data_store = IndexFactory::construct_pq_datastore<T>(DataStoreStrategy::MEMORY, max_points + num_frozen_pts,
                                                                  dim, m, num_pq_chunks, use_opq);
@@ -412,7 +411,36 @@ void Index<T, TagT, LabelT>::save(const char *filename, bool compact_before_save
         // the error code for delete_file, but will ignore now because
         // delete should succeed if save will succeed.
         delete_file(graph_file);
-        save_graph(graph_file);
+        if (!_cuvs_cagra_index)
+            save_graph(graph_file);
+        else
+        {
+            std::ofstream out;
+            open_file_to_write(out, graph_file);
+
+            size_t file_offset = 0;
+            out.seekp(file_offset, out.beg);
+            size_t index_size = 24;
+            uint32_t max_degree = _cuvs_cagra_index_params.graph_degree;
+            out.write((char *)&index_size, sizeof(uint64_t));
+            out.write((char *)&max_degree, sizeof(uint32_t));
+            uint32_t ep_u32 = _start;
+            out.write((char *)&ep_u32, sizeof(uint32_t));
+            out.write((char *)&_num_frozen_pts, sizeof(size_t));
+
+            uint32_t GK = max_degree;
+            for (uint32_t i = 0; i < _nd + _num_frozen_pts; i++)
+            {
+
+                out.write((char *)&GK, sizeof(uint32_t));
+                out.write((char *)(host_cagra_graph.data() + GK * i), GK * sizeof(uint32_t));
+                index_size += (size_t)(sizeof(uint32_t) * (GK + 1));
+            }
+            out.seekp(file_offset, out.beg);
+            out.write((char *)&index_size, sizeof(uint64_t));
+            out.write((char *)&max_degree, sizeof(uint32_t));
+            out.close();
+        }
         delete_file(data_file);
         save_data(data_file);
         delete_file(tags_file);
@@ -772,7 +800,6 @@ template <typename T, typename TagT, typename LabelT> int Index<T, TagT, LabelT>
 
 template <typename T, typename TagT, typename LabelT> uint32_t Index<T, TagT, LabelT>::calculate_entry_point()
 {
-    std::cout << "inside calculate entry point" << std::endl;
     // REFACTOR TODO: This function does not support multi-threaded calculation of medoid.
     // Must revisit if perf is a concern.
     return _data_store->calculate_medoid();
@@ -780,7 +807,6 @@ template <typename T, typename TagT, typename LabelT> uint32_t Index<T, TagT, La
 
 template <typename T, typename TagT, typename LabelT> std::vector<uint32_t> Index<T, TagT, LabelT>::get_init_ids()
 {
-    // std::cout << "num_frozen_pts" << _num_frozen_pts << std::endl;
     std::vector<uint32_t> init_ids;
     init_ids.reserve(1 + _num_frozen_pts);
 
@@ -880,8 +906,6 @@ std::pair<uint32_t, uint32_t> Index<T, TagT, LabelT>::iterate_to_fixed_point(
     auto compute_dists = [this, scratch, pq_dists](const std::vector<uint32_t> &ids, std::vector<float> &dists_out) {
         _pq_data_store->get_distance(scratch->aligned_query(), ids, dists_out, scratch);
     };
-
-    // raft::print_host_vector("init_ids", init_ids.data(), init_ids.size(), std::cout);
 
     // Initialize the candidate pool with starting points
     for (auto id : init_ids)
@@ -1314,7 +1338,6 @@ void Index<T, TagT, LabelT>::inter_insert(uint32_t n, std::vector<uint32_t> &pru
 
 template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::link()
 {
-    std::cout << "inside link()" << std::endl;
     uint32_t num_threads = _indexingThreads;
     if (num_threads != 0)
         omp_set_num_threads(num_threads);
@@ -1413,57 +1436,6 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     if (_nd > 0)
     {
         diskann::cout << "done. Link time: " << ((double)link_timer.elapsed() / (double)1000000) << "s" << std::endl;
-    }
-}
-
-template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT>::add_cuvs_cagra_nbrs()
-{
-    std::cout << "add_cuvs_cagra_neighbors" << std::endl;
-    uint32_t num_threads = _indexingThreads;
-    if (num_threads != 0)
-        omp_set_num_threads(num_threads);
-
-    assert(_num_frozen_pts == 0);
-
-    /* visit_order is a vector that is initialized to the entire graph */
-    std::vector<uint32_t> visit_order;
-    tsl::robin_set<uint32_t> visited;
-    visit_order.reserve(_nd + _num_frozen_pts);
-    for (uint32_t i = 0; i < (uint32_t)_nd; i++)
-    {
-        visit_order.emplace_back(i);
-    }
-
-    // if there are frozen points, the first such one is set to be the _start
-    if (_num_frozen_pts > 0)
-        _start = (uint32_t)_max_points;
-    else
-        _start = calculate_entry_point();
-
-#pragma omp parallel for schedule(dynamic, 2048)
-    for (int64_t node_ctr = 0; node_ctr < (int64_t)(visit_order.size()); node_ctr++)
-    {
-        auto node = visit_order[node_ctr];
-
-        std::vector<uint32_t> cagra_nbrs(_indexingRange);
-        uint32_t *nbr_start_ptr = host_cagra_graph.data() + node * _indexingRange;
-        uint32_t *nbr_end_ptr = nbr_start_ptr + _indexingRange;
-        std::copy(nbr_start_ptr, nbr_end_ptr, cagra_nbrs.data());
-
-        assert(cagra_nbrs.size() > 0);
-
-        {
-            LockGuard guard(_locks[node]);
-
-            _graph_store->set_neighbours(node, cagra_nbrs);
-            assert(_graph_store->get_neighbours((location_t)node).size() <= _indexingRange);
-        }
-
-        if (node_ctr % 100000 == 0)
-        {
-            diskann::cout << "\r" << (100.0 * node_ctr) / (visit_order.size()) << "% of index build completed."
-                          << std::flush;
-        }
     }
 }
 
@@ -1603,14 +1575,13 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
 {
     raft::device_resources handle;
     auto dataset_view = raft::make_host_matrix_view<const T, int64_t>(data, int64_t(_nd), _dim);
-    auto cuvs_index = cuvs::neighbors::cagra::build<T, uint32_t>(handle, *_cuvs_cagra_index_params, dataset_view);
+    auto cuvs_index = cuvs::neighbors::cagra::build(handle, *_cuvs_cagra_index_params, dataset_view);
     auto stream = handle.get_stream();
     auto device_graph = cuvs_index.graph();
     host_cagra_graph.resize(device_graph.extent(0) * device_graph.extent(1));
 
-    thrust::copy(handle.get_thrust_policy(), thrust::device_ptr<const uint32_t>(device_graph.data_handle()),
-                 thrust::device_ptr<const uint32_t>(device_graph.data_handle() + device_graph.size()),
-                 host_cagra_graph.data());
+    raft::copy(host_cagra_graph.data(), device_graph.data_handle(), device_graph.extent(0) * device_graph.extent(1),
+               stream);
     handle.sync_stream();
 }
 
@@ -1651,14 +1622,7 @@ void Index<T, TagT, LabelT>::build_with_data_populated(const std::vector<TagT> &
     }
 
     generate_frozen_point();
-    if (_cuvs_cagra_index)
-    {
-        add_cuvs_cagra_nbrs();
-    }
-    else
-    {
-        link();
-    }
+    link();
 
     size_t max = 0, min = SIZE_MAX, total = 0, cnt = 0;
     for (size_t i = 0; i < _nd; i++)
@@ -1779,7 +1743,7 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
 
     // REFACTOR PQ TODO: We can remove this if and add a check in the InMemDataStore
     // to not populate_data if it has been called once.
-    if (_pq_dist && !_cuvs_cagra_index)
+    if (_pq_dist)
     {
 #ifdef EXEC_ENV_OLS
         std::stringstream ss;
@@ -1811,8 +1775,8 @@ void Index<T, TagT, LabelT>::build(const char *filename, const size_t num_points
         auto _in_mem_data_store = std::static_pointer_cast<InMemDataStore<T>>(_data_store);
         build_cuvs_cagra_index(_in_mem_data_store->_data);
     }
-    // else
-    build_with_data_populated(tags);
+    else
+        build_with_data_populated(tags);
 }
 
 template <typename T, typename TagT, typename LabelT>
