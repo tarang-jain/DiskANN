@@ -1108,7 +1108,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath, const 
                      const uint32_t Lf, std::shared_ptr<cuvs::neighbors::cagra::index_params> cagra_index_params)
 {
     bool use_cuvs_cagra_graph = cagra_index_params != nullptr;
-    // std::cout << "inside build_disk_index: use_cuvs_cagra_graph: " << use_cuvs_cagra_graph << std::endl;
     std::stringstream parser;
     parser << std::string(indexBuildParameters);
     std::string cur_param;
@@ -1296,8 +1295,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath, const 
     diskann::get_bin_metadata(data_file_to_use.c_str(), points_num, dim);
     const double p_val = ((double)MAX_PQ_TRAINING_SET_SIZE / (double)points_num);
     
-    if (!use_cuvs_cagra_graph) {
-        std::cout << "entered !use_cuvs_cagra_graph if block" << std::endl;
     if (use_disk_pq)
     {
         generate_disk_quantized_data<T>(data_file_to_use, disk_pq_pivots_path, disk_pq_compressed_vectors_path,
@@ -1324,7 +1321,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath, const 
     generate_quantized_data<T>(data_file_to_use, pq_pivots_path, pq_compressed_vectors_path, compareMetric, p_val,
                                num_pq_chunks, use_opq, codebook_prefix);
     diskann::cout << timer.elapsed_seconds_for_step("generating quantized data") << std::endl;
-}
 
 // Gopal. Splitting diskann_dll into separate DLLs for search and build.
 // This code should only be available in the "build" DLL.
@@ -1333,7 +1329,6 @@ int build_disk_index(const char *dataFilePath, const char *indexFilePath, const 
 #endif
     // Whether it is cosine or inner product, we still L2 metric due to the pre-processing.
     timer.reset();
-    std::cout << "now running build_merged_vamana_index" << std::endl;
     diskann::build_merged_vamana_index<T, LabelT>(data_file_to_use.c_str(), diskann::Metric::L2, L, R, p_val,
                                                   indexing_ram_budget, mem_index_path, medoids_path, centroids_path,
                                                   build_pq_bytes, use_opq, num_threads, use_filters, labels_file_to_use,
