@@ -241,10 +241,8 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
     Index(const Index<T, TagT, LabelT> &) = delete;
     Index<T, TagT, LabelT> &operator=(const Index<T, TagT, LabelT> &) = delete;
 
-    // Build the raft CAGRA index
+    // Build the cuVS CAGRA index
     void build_cuvs_cagra_index(const T* data);
-
-    void build_cuvs_cagra_index_quantized(const uint8_t *data);
 
     // Use after _data and _nd have been populated
     // Acquire exclusive _update_lock before calling
@@ -295,8 +293,6 @@ template <typename T, typename TagT = uint32_t, typename LabelT = uint32_t> clas
 
     // Acquire exclusive _update_lock before calling
     void link();
-
-    void add_cuvs_cagra_nbrs();
 
     // Acquire exclusive _tag_lock and _delete_lock before calling
     int reserve_location();

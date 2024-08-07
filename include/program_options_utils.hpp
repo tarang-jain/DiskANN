@@ -77,6 +77,6 @@ const char *UNIVERSAL_LABEL =
     "in the labels file instead of listing all labels for a node.  DiskANN will not automatically assign a "
     "universal label to a node.";
 const char *FILTERED_LBUILD = "Build complexity for filtered points, higher value results in better graphs";
-const char *RAFT_CAGRA_INDEX = "Use the raft CAGRA graph instead of the Vamana graph";
+const char *CUVS_CAGRA_INDEX = "Use the raft CAGRA graph instead of the Vamana graph";
 
 } // namespace program_options_utils
