@@ -21,9 +21,7 @@
 #include "parameters.h"
 #include "memory_mapper.h"
 #include "partition.h"
-#ifdef _WINDOWS
 #include <xmmintrin.h>
-#endif
 
 // block size for reading/ processing large files and matrices in blocks
 #define BLOCK_SIZE 5000000
