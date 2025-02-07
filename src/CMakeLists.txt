@@ -17,7 +17,7 @@ else()
     if (RESTAPI)
         list(APPEND CPP_SOURCES restapi/search_wrapper.cpp restapi/server.cpp)
     endif()
-    add_library(${PROJECT_NAME} ${CPP_SOURCES})
+    # add_library(${PROJECT_NAME} ${CPP_SOURCES})
     add_library(${PROJECT_NAME}_s STATIC ${CPP_SOURCES})
 endif()
 
