@@ -23,10 +23,6 @@ set(CMAKE_STANDARD 17)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-if(NOT MSVC)
-	set(CMAKE_CXX_COMPILER g++)
-endif()
-
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake;${CMAKE_MODULE_PATH}")
 
 # Install nuget packages for dependencies.
