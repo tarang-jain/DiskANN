@@ -8,7 +8,7 @@
 #include <set>
 #include <boost/program_options.hpp>
 
-#include "index.cuh"
+#include "index.h"
 #include "disk_utils.h"
 #include "math_utils.h"
 #include "memory_mapper.h"

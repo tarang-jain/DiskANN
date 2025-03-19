@@ -24,9 +24,10 @@
 
 #include "quantized_distance.h"
 #include "pq_data_store.h"
-#include <cuvs/neighbors/cagra.hpp>
+
 #include <raft/core/resources.hpp>
 #include <cuda/memory_resource>
+#include <cuvs/neighbors/cagra.hpp>
 
 #define OVERHEAD_FACTOR 1.1
 #define EXPAND_IF_FULL 0

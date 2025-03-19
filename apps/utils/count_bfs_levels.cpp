@@ -18,7 +18,7 @@
 #endif
 
 #include "utils.h"
-#include "index.cuh"
+#include "index.h"
 #include "memory_mapper.h"
 
 namespace po = boost::program_options;

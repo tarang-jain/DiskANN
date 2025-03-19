@@ -11,7 +11,7 @@
 #include "utils.h"
 #include "disk_utils.h"
 #include "math_utils.h"
-#include "index.cuh"
+#include "index.h"
 #include "partition.h"
 #include "program_options_utils.hpp"
 

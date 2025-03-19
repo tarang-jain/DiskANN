@@ -4,7 +4,7 @@
 #include "builder.h"
 #include "common.h"
 #include "disk_utils.h"
-#include "index.cuh"
+#include "index.h"
 #include "parameters.h"
 
 namespace diskannpy

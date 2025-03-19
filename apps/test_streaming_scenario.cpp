@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
-#include <index.cuh>
+#include <index.h>
 #include <numeric>
 #include <omp.h>
 #include <string.h>

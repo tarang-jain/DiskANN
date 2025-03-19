@@ -10,7 +10,7 @@
 
 #include <omp.h>
 #include "filter_utils.h"
-#include "index.cuh"
+#include "index.h"
 #include "parameters.h"
 #include "utils.h"
 

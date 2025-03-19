@@ -24,7 +24,7 @@
 #include <xmmintrin.h>
 #endif
 
-#include "index.cuh"
+#include "index.h"
 #include <xmmintrin.h>
 
 
