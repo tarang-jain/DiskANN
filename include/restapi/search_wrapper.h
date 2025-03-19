@@ -7,7 +7,7 @@
 #include <vector>
 #include <stdexcept>
 
-#include <index.h>
+#include <index.cuh>
 #include <pq_flash_index.h>
 
 namespace diskann

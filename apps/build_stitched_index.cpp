@@ -14,7 +14,7 @@
 #include <sys/uio.h>
 #endif
 
-#include "index.h"
+#include "index.cuh"
 #include "memory_mapper.h"
 #include "parameters.h"
 #include "utils.h"

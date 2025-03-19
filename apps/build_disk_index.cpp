@@ -1,13 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT license.
 
+#include <cuvs/neighbors/cagra.hpp>
+#include <cuvs/neighbors/ivf_pq.hpp>
+#include <memory>
 #include <omp.h>
 #include <boost/program_options.hpp>
 
+#include "library_types.h"
 #include "utils.h"
 #include "disk_utils.h"
 #include "math_utils.h"
-#include "index.h"
+#include "index.cuh"
 #include "partition.h"
 #include "program_options_utils.hpp"
 
@@ -138,6 +142,25 @@ int main(int argc, char **argv)
                          std::string(std::to_string(num_threads)) + " " + std::string(std::to_string(disk_PQ)) + " " +
                          std::string(std::to_string(append_reorder_data)) + " " +
                          std::string(std::to_string(build_PQ)) + " " + std::string(std::to_string(QD));
+    cuvs::neighbors::cagra::index_params cagra_index_params;
+    cagra_index_params.attach_dataset_on_build = false;
+    cagra_index_params.graph_degree = 2*R / 3;
+    cagra_index_params.intermediate_graph_degree = 2 * cagra_index_params.graph_degree;
+    cagra_index_params.guarantee_connectivity = true;
+    cuvs::neighbors::ivf_pq::index_params ivf_pq_index_params;
+    ivf_pq_index_params.kmeans_n_iters = 10;
+    ivf_pq_index_params.n_lists = 1024;
+    ivf_pq_index_params.pq_dim = 48;;
+    ivf_pq_index_params.kmeans_trainset_fraction = 0.1;
+    ivf_pq_index_params.pq_bits = 8;
+    cuvs::neighbors::ivf_pq::search_params ivf_pq_search_params;
+    ivf_pq_search_params.lut_dtype = CUDA_R_16F;
+    ivf_pq_search_params.n_probes = 2;
+    cuvs::neighbors::cagra::graph_build_params::ivf_pq_params ivf_pq_params;
+    ivf_pq_params.build_params = ivf_pq_index_params;
+    ivf_pq_params.search_params = ivf_pq_search_params;
+    ivf_pq_params.refinement_rate = 1.0;
+    std::shared_ptr<cuvs::neighbors::cagra::index_params> cagra_params = std::make_shared<cuvs::neighbors::cagra::index_params>(cagra_index_params);
 
     try
     {
@@ -154,7 +177,7 @@ int main(int argc, char **argv)
             else if (data_type == std::string("float"))
                 return diskann::build_disk_index<float, uint16_t>(
                     data_path.c_str(), index_path_prefix.c_str(), params.c_str(), metric, use_opq, codebook_prefix,
-                    use_filters, label_file, universal_label, filter_threshold, Lf);
+                    use_filters, label_file, universal_label, filter_threshold, Lf, cagra_params);
             else
             {
                 diskann::cerr << "Error. Unsupported data type" << std::endl;
@@ -174,7 +197,7 @@ int main(int argc, char **argv)
             else if (data_type == std::string("float"))
                 return diskann::build_disk_index<float>(data_path.c_str(), index_path_prefix.c_str(), params.c_str(),
                                                         metric, use_opq, codebook_prefix, use_filters, label_file,
-                                                        universal_label, filter_threshold, Lf);
+                                                        universal_label, filter_threshold, Lf, cagra_params);
             else
             {
                 diskann::cerr << "Error. Unsupported data type" << std::endl;

@@ -6,7 +6,7 @@
 #include <cstring>
 #include <boost/program_options.hpp>
 
-#include "index.h"
+#include "index.cuh"
 #include "utils.h"
 #include "program_options_utils.hpp"
 

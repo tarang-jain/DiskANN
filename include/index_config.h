@@ -4,7 +4,11 @@
 #include "parameters.h"
 #include <memory>
 
-#include <cuvs/neighbors/cagra.hpp>
+// #include <cuvs/neighbors/cagra.hpp>
+
+namespace cuvs::neighbors::cagra {
+    struct index_params;
+}
 
 namespace diskann
 {

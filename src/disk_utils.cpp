@@ -11,7 +11,7 @@
 #include "logger.h"
 #include "disk_utils.h"
 #include "cached_io.h"
-#include "index.h"
+#include "index.cuh"
 #include "mkl.h"
 #include "omp.h"
 #include "percentile_stats.h"

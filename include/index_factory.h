@@ -1,6 +1,6 @@
 #pragma once
 
-#include "index.h"
+#include "index.cuh"
 #include "abstract_graph_store.h"
 #include "in_mem_graph_store.h"
 #include "pq_data_store.h"

@@ -24,9 +24,9 @@
 #include <xmmintrin.h>
 #endif
 
-#include "index.h"
+#include "index.cuh"
 #include <xmmintrin.h>
-#include <cuvs/neighbors/cagra.hpp>
+
 
 #define MAX_POINTS_FOR_USING_BITSET 10000000
 

@@ -17,7 +17,7 @@
 #include <unistd.h>
 #endif
 
-#include "index.h"
+#include "index.cuh"
 #include "memory_mapper.h"
 #include "utils.h"
 #include "program_options_utils.hpp"

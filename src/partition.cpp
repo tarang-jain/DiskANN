@@ -17,7 +17,7 @@
 
 #include "utils.h"
 #include "math_utils.h"
-#include "index.h"
+#include "index.cuh"
 #include "parameters.h"
 #include "memory_mapper.h"
 #include "partition.h"

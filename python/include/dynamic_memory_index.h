@@ -10,7 +10,7 @@
 #include <pybind11/numpy.h>
 
 #include "common.h"
-#include "index.h"
+#include "index.cuh"
 #include "parameters.h"
 
 namespace py = pybind11;
