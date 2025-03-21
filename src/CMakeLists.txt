@@ -20,8 +20,8 @@ else()
     add_library(${PROJECT_NAME} ${CPP_SOURCES})
     add_library(${PROJECT_NAME}_s STATIC ${CPP_SOURCES})
 
-    target_link_libraries(${PROJECT_NAME} PRIVATE cuvs)
-    target_link_libraries(${PROJECT_NAME}_s PRIVATE cuvs)
+    target_link_libraries(${PROJECT_NAME} PRIVATE cuvs::cuvs)
+    target_link_libraries(${PROJECT_NAME}_s PRIVATE cuvs::cuvs)
 endif()
 
 if (NOT MSVC)

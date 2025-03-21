@@ -11,7 +11,7 @@
 # or implied. See the License for the specific language governing permissions and limitations under
 # the License.
 
-set(RAPIDS_VERSION "25.02")
+set(RAPIDS_VERSION "25.04")
 
 if(NOT EXISTS ${CMAKE_CURRENT_BINARY_DIR}/DISKANN_RAPIDS.cmake)
     file(DOWNLOAD https://raw.githubusercontent.com/rapidsai/rapids-cmake/branch-${RAPIDS_VERSION}/RAPIDS.cmake

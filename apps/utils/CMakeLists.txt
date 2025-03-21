@@ -17,7 +17,7 @@ add_executable(float_bin_to_int8 float_bin_to_int8.cpp)
 add_executable(ivecs_to_bin ivecs_to_bin.cpp)
 
 add_executable(count_bfs_levels count_bfs_levels.cpp)
-target_link_libraries(count_bfs_levels ${PROJECT_NAME} Boost::program_options)
+target_link_libraries(count_bfs_levels ${PROJECT_NAME} Boost::program_options cuvs::cuvs)
 
 add_executable(tsv_to_bin tsv_to_bin.cpp)
 
@@ -44,7 +44,7 @@ target_link_libraries(gen_random_slice ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_
 add_executable(simulate_aggregate_recall simulate_aggregate_recall.cpp)
 
 add_executable(calculate_recall calculate_recall.cpp)
-target_link_libraries(calculate_recall ${PROJECT_NAME} ${DISKANN_ASYNC_LIB} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS})
+target_link_libraries(calculate_recall ${PROJECT_NAME} ${DISKANN_ASYNC_LIB} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} cuvs::cuvs)
 
 # Compute ground truth thing outside of DiskANN main source that depends on MKL.
 add_executable(compute_groundtruth compute_groundtruth.cpp)
@@ -61,16 +61,16 @@ target_link_libraries(generate_pq ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_
 
 
 add_executable(partition_data partition_data.cpp)
-target_link_libraries(partition_data ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS})
+target_link_libraries(partition_data ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} cuvs::cuvs)
 
 add_executable(partition_with_ram_budget partition_with_ram_budget.cpp)
-target_link_libraries(partition_with_ram_budget ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS})
+target_link_libraries(partition_with_ram_budget ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} cuvs::cuvs)
 
 add_executable(merge_shards merge_shards.cpp)
-target_link_libraries(merge_shards ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} ${DISKANN_ASYNC_LIB})
+target_link_libraries(merge_shards ${PROJECT_NAME} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} ${DISKANN_ASYNC_LIB} cuvs::cuvs)
 
 add_executable(create_disk_layout create_disk_layout.cpp)
-target_link_libraries(create_disk_layout ${PROJECT_NAME} ${DISKANN_ASYNC_LIB} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS})
+target_link_libraries(create_disk_layout ${PROJECT_NAME} ${DISKANN_ASYNC_LIB} ${DISKANN_TOOLS_TCMALLOC_LINK_OPTIONS} cuvs::cuvs)
 
 add_executable(generate_synthetic_labels generate_synthetic_labels.cpp)
 target_link_libraries(generate_synthetic_labels ${PROJECT_NAME} Boost::program_options)

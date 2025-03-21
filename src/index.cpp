@@ -421,7 +421,7 @@ void Index<T, TagT, LabelT>::save(const char *filename, bool compact_before_save
             size_t file_offset = 0;
             out.seekp(file_offset, out.beg);
             size_t index_size = 24;
-            uint32_t max_degree = _cuvs_cagra_index_params.graph_degree;
+            uint32_t max_degree = _cuvs_cagra_index_params->graph_degree;
             out.write((char *)&index_size, sizeof(uint64_t));
             out.write((char *)&max_degree, sizeof(uint32_t));
             uint32_t ep_u32 = _start;

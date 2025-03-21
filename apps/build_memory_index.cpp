@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         optional_configs.add_options()("label_type", po::value<std::string>(&label_type)->default_value("uint"),
                                        program_options_utils::LABEL_TYPE_DESCRIPTION);
         optional_configs.add_options()("cuvs_cagra_index", po::value<bool>(&cuvs_cagra_index)->default_value(true),
-                                       program_options_utils::cuvs_cagra_INDEX);
+                                       program_options_utils::CUVS_CAGRA_INDEX);
 
         // Merge required and optional parameters
         desc.add(required_configs).add(optional_configs);
