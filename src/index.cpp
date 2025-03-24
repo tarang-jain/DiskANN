@@ -20,9 +20,7 @@
 #include "gperftools/malloc_extension.h"
 #endif
 
-#ifdef _WINDOWS
 #include <xmmintrin.h>
-#endif
 
 #include "index.h"
 #include <xmmintrin.h>

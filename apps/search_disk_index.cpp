@@ -186,8 +186,8 @@ int search_disk_index(diskann::Metric &metric, const std::string &index_path_pre
     }
     else
         diskann::cout << std::endl;
-    diskann::cout << "==============================================================="
-                     "======================================================="
+    diskann::cout << "=================================================================="
+                     "================================================================="
                   << std::endl;
 
     std::vector<std::vector<uint32_t>> query_result_ids(Lvec.size());
@@ -275,6 +275,9 @@ int search_disk_index(diskann::Metric &metric, const std::string &index_path_pre
         
         auto mean_n_cmps = diskann::get_mean_stats<float>(stats, query_num,
                                                          [](const diskann::QueryStats &stats) { return stats.n_cmps; });
+
+        auto mean_io_us = diskann::get_mean_stats<float>(stats, query_num,
+                                                         [](const diskann::QueryStats &stats) { return stats.io_us; });
 
         double recall = 0;
         if (calc_recall_flag)
