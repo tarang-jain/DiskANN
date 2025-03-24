@@ -165,8 +165,6 @@ if (MSVC)
 else()
     # expected path for manual intel mkl installs
     find_package(MKL CONFIG REQUIRED)
-
-    #target_compile_options(${PROJECT_NAME} PUBLIC $<TARGET_PROPERTY:MKL::MKL,INTERFACE_COMPILE_OPTIONS>)
     include_directories($<TARGET_PROPERTY:MKL::MKL,INTERFACE_INCLUDE_DIRECTORIES>)
     link_libraries($<LINK_ONLY:MKL::MKL>)
 
@@ -273,10 +271,6 @@ else()
 endif()
 
 add_subdirectory(src)
-if (NOT PYBIND)
-    add_subdirectory(apps)
-    add_subdirectory(apps/utils)
-endif()
 
 if (UNIT_TEST)
     enable_testing()
