@@ -1581,6 +1581,12 @@ template <typename T, typename TagT, typename LabelT> void Index<T, TagT, LabelT
     raft::copy(host_cagra_graph.data(), device_graph.data_handle(), device_graph.extent(0) * device_graph.extent(1),
                stream);
     handle.sync_stream();
+
+    // if there are frozen points, the first such one is set to be the _start
+    if (_num_frozen_pts > 0)
+        _start = (uint32_t)_max_points;
+    else
+        _start = calculate_entry_point();
 }
 
 template <typename T, typename TagT, typename LabelT>
