@@ -248,6 +248,10 @@ else()
 endif()
 
 add_subdirectory(src)
+if (NOT PYBIND)
+    add_subdirectory(apps)
+    add_subdirectory(apps/utils)
+endif()
 
 if (UNIT_TEST)
     enable_testing()
